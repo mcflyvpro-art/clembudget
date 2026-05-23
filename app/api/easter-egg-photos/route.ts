@@ -14,7 +14,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0]
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date())
 }
 
 function getSupabase() {
