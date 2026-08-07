@@ -3,10 +3,20 @@
 import { useState, useTransition, useMemo } from 'react'
 import { Pencil, Trash2, Plus, X, Check, Pause, Play, Target, CalendarRange, Layers } from 'lucide-react'
 import { createBudget, updateBudget, deleteBudget, toggleBudget } from '@/app/actions'
-import { BUDGET_PERIODS, STATUS_TEXT, budgetName, budgetPeriodLabel } from '@/lib/budgets'
+import {
+  BUDGET_PERIODS,
+  STATUS_TEXT,
+  alpha,
+  budgetName,
+  budgetPeriodLabel,
+  budgetTint,
+  viewBudget,
+} from '@/lib/budgets'
+import { useForecast } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import { todayISO } from '@/lib/date-utils'
 import BudgetBar from './BudgetBar'
+import TagBadge from '@/components/TagBadge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -108,55 +118,68 @@ function BudgetRow({
   onToggle: () => void
   disabled: boolean
 }) {
+  const { isOn } = useForecast()
   const b = progress.budget
   const paused = !b.is_active
+  const view = viewBudget(progress, isOn(b.id))
+  const tint = budgetTint(progress)
+  const alert = view.status === 'over' || view.status === 'risk'
 
   return (
     <div
-      className={`rounded-xl border border-border/60 bg-background px-4 py-3.5 transition-colors ${
-        paused ? 'opacity-50' : 'hover:bg-muted/20'
+      className={`flex gap-3 rounded-xl border border-border/60 pl-2.5 pr-4 py-3.5 transition-colors ${
+        paused ? 'opacity-50' : 'hover:brightness-[0.99]'
       }`}
+      style={{ backgroundColor: alpha(tint, 6) }}
     >
-      <BudgetBar progress={progress} showFooter={!paused} />
+      {/* Liséré : la couleur de la catégorie, repérable au premier coup d'œil */}
+      <span
+        className="w-1 self-stretch rounded-full shrink-0"
+        style={{ backgroundColor: tint }}
+      />
 
-      <div className="flex items-center justify-between gap-2 mt-2.5">
-        <span
-          className={`text-[11px] font-medium ${
-            progress.status === 'over' || progress.status === 'risk'
-              ? 'text-destructive'
-              : 'text-muted-foreground'
-          }`}
-        >
-          {paused ? 'En pause' : progress.isPast ? 'Terminé' : progress.isFuture ? 'À venir' : STATUS_TEXT[progress.status]}
-        </span>
+      <div className="flex-1 min-w-0">
+        <BudgetBar progress={progress} showFooter={!paused} />
 
-        <div className="flex items-center">
-          <button
-            onClick={onToggle}
-            disabled={disabled}
-            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-            title={paused ? 'Réactiver' : 'Mettre en pause'}
-            type="button"
-          >
-            {paused ? <Play size={14} /> : <Pause size={14} />}
-          </button>
-          <button
-            onClick={onEdit}
-            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-            title="Modifier"
-            type="button"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={onDelete}
-            disabled={disabled}
-            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
-            title="Supprimer"
-            type="button"
-          >
-            <Trash2 size={14} />
-          </button>
+        <div className="flex items-center justify-between gap-2 mt-2.5">
+          <span className={`text-[11px] font-medium ${alert && !paused ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {paused
+              ? 'En pause'
+              : progress.isPast
+                ? 'Terminé'
+                : progress.isFuture
+                  ? 'À venir'
+                  : STATUS_TEXT[view.status]}
+          </span>
+
+          <div className="flex items-center -mr-1.5">
+            <button
+              onClick={onToggle}
+              disabled={disabled}
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              title={paused ? 'Réactiver' : 'Mettre en pause'}
+              type="button"
+            >
+              {paused ? <Play size={14} /> : <Pause size={14} />}
+            </button>
+            <button
+              onClick={onEdit}
+              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              title="Modifier"
+              type="button"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={disabled}
+              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+              title="Supprimer"
+              type="button"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -195,6 +218,7 @@ interface Props {
 }
 
 export default function BudgetsManager({ budgets, progresses, tags }: Props) {
+  const { isOn } = useForecast()
   const [form, setForm] = useState<FormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -402,20 +426,47 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
           {/* Catégorie */}
           {form.mode !== 'global' && (
             <div className="space-y-1.5">
-              <Label htmlFor="budget-tag">
+              <Label>
                 Catégorie {form.mode === 'oneshot' && <span className="text-muted-foreground font-normal">(optionnel)</span>}
               </Label>
-              <select
-                id="budget-tag"
-                value={effectiveTagId}
-                onChange={e => setForm(f => ({ ...f, tagId: e.target.value }))}
-                className={inputClass}
-              >
-                {form.mode === 'oneshot' && <option value="">Toutes catégories</option>}
-                {selectableTags.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              {/* Chips colorés — même grammaire visuelle que l'ajout de dépense */}
+              <div className="flex flex-wrap gap-1.5" id="budget-tag">
+                {form.mode === 'oneshot' && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, tagId: '' }))}
+                    className={`rounded-full px-3 py-1 text-sm font-medium border transition-all ${
+                      effectiveTagId === ''
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Toutes
+                  </button>
+                )}
+                {selectableTags.map(t => {
+                  const selected = effectiveTagId === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, tagId: t.id }))}
+                      className="rounded-full px-3 py-1 text-sm font-medium border transition-all"
+                      style={
+                        selected
+                          ? { backgroundColor: t.color, color: '#fff', borderColor: t.color }
+                          : {
+                              backgroundColor: alpha(t.color, 14),
+                              color: t.color,
+                              borderColor: alpha(t.color, 25),
+                            }
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  )
+                })}
+              </div>
               {form.mode === 'category' && availableTags.length === 0 && (
                 <p className="text-[11px] text-muted-foreground">
                   Toutes les catégories ont déjà un objectif.
@@ -509,17 +560,21 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
 
         {/* Récap discret */}
         {rows.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-border/60 space-y-1.5">
-            {progresses.filter(p => !p.isPast && !p.isFuture).slice(0, 3).map(p => (
-              <div key={p.budget.id} className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-muted-foreground truncate">
-                  {budgetName(p)} <span className="opacity-60">{budgetPeriodLabel(p)}</span>
-                </span>
-                <span className={`tabular-nums shrink-0 ${p.status === 'over' ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {formatEUR(p.remaining)}
-                </span>
-              </div>
-            ))}
+          <div className="mt-5 pt-4 border-t border-border/60 space-y-2">
+            {progresses.filter(p => !p.isPast && !p.isFuture).slice(0, 3).map(p => {
+              const view = viewBudget(p, isOn(p.budget.id))
+              return (
+                <div key={p.budget.id} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <TagBadge tag={{ name: budgetName(p), color: budgetTint(p) }} />
+                    <span className="text-muted-foreground/70 shrink-0">{budgetPeriodLabel(p)}</span>
+                  </span>
+                  <span className={`tabular-nums shrink-0 ${view.remaining < 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {formatEUR(view.remaining)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

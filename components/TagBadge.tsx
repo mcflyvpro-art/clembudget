@@ -1,19 +1,26 @@
-import type { Tag } from '@/lib/types'
-
 interface Props {
-  tag: Tag
-  size?: 'sm' | 'md'
+  /** N'importe quel objet porteur d'un nom et d'une couleur (un Tag convient). */
+  tag: { name: string; color: string }
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
 }
 
-export default function TagBadge({ tag, size = 'sm' }: Props) {
-  const sizeClass = size === 'md' ? 'text-xs px-2.5 py-1' : 'text-[11px] px-2 py-0.5'
+const SIZES = {
+  sm: 'text-[11px] px-2 py-0.5',
+  md: 'text-xs px-2.5 py-1',
+  lg: 'text-sm px-3 py-1',
+}
+
+/** Pastille colorée d'une catégorie — chip canonique de l'app. */
+export default function TagBadge({ tag, size = 'sm', className = '' }: Props) {
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${sizeClass}`}
+      className={`inline-flex items-center rounded-full font-medium max-w-full truncate ${SIZES[size]} ${className}`}
       style={{
-        backgroundColor: tag.color + '28',
+        // color-mix plutôt que `+ '28'` : fonctionne aussi avec var(--primary)
+        backgroundColor: `color-mix(in srgb, ${tag.color} 16%, transparent)`,
         color: tag.color,
-        border: `1px solid ${tag.color}40`,
+        border: `1px solid color-mix(in srgb, ${tag.color} 25%, transparent)`,
       }}
     >
       {tag.name}

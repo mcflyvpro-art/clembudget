@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { Target, ChevronRight, AlertTriangle } from 'lucide-react'
 import BudgetBar from './BudgetBar'
-import { STATUS_TEXT } from '@/lib/budgets'
+import { STATUS_TEXT, budgetName, budgetTint, alpha, viewBudget } from '@/lib/budgets'
+import { useForecast } from '@/lib/budget-forecast'
 import type { BudgetProgress } from '@/lib/types'
 
 interface Props {
@@ -15,11 +16,16 @@ interface Props {
 
 /** Bandeau compact du dashboard. Invisible tant qu'aucun objectif n'est défini. */
 export default function BudgetsStrip({ progresses, limit = 4, className = '' }: Props) {
+  const { isOn } = useForecast()
+
   const visible = progresses.filter(p => !p.isPast && !p.isFuture)
   if (visible.length === 0) return null
 
   const shown = visible.slice(0, limit)
-  const alerts = visible.filter(p => p.status === 'over' || p.status === 'risk')
+  const alerts = visible.filter(p => {
+    const s = viewBudget(p, isOn(p.budget.id)).status
+    return s === 'over' || s === 'risk'
+  })
 
   return (
     <div className={`bg-card border border-border rounded-2xl overflow-hidden ${className}`}>
@@ -42,15 +48,26 @@ export default function BudgetsStrip({ progresses, limit = 4, className = '' }: 
           <AlertTriangle size={13} className="text-destructive shrink-0 mt-0.5" />
           <p className="text-[11px] text-destructive leading-snug">
             {alerts.length === 1
-              ? `${STATUS_TEXT[alerts[0].status]} — ${alerts[0].budget.tags?.name ?? 'toutes catégories'}`
+              ? `${STATUS_TEXT[viewBudget(alerts[0], isOn(alerts[0].budget.id)).status]} — ${budgetName(alerts[0])}`
               : `${alerts.length} objectifs en dépassement ou à risque`}
           </p>
         </div>
       )}
 
-      <div className="px-5 py-4 space-y-4">
+      <div className="px-3 py-3 space-y-2">
         {shown.map(p => (
-          <BudgetBar key={p.budget.id} progress={p} size="sm" showFooter />
+          // Liséré coloré : repérage instantané de la catégorie
+          <div
+            key={p.budget.id}
+            className="flex gap-3 rounded-xl px-2.5 py-2.5"
+            style={{ backgroundColor: alpha(budgetTint(p), 5) }}
+          >
+            <span
+              className="w-1 self-stretch rounded-full shrink-0"
+              style={{ backgroundColor: budgetTint(p) }}
+            />
+            <BudgetBar progress={p} size="sm" showFooter className="flex-1 min-w-0" />
+          </div>
         ))}
       </div>
     </div>

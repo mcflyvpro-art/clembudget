@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { Target, ChevronRight } from 'lucide-react'
 import BudgetBar from './BudgetBar'
-import { STATUS_TEXT, budgetPeriodLabel } from '@/lib/budgets'
+import { STATUS_TEXT, budgetTint, alpha, viewBudget } from '@/lib/budgets'
+import { useForecast } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import type { BudgetProgress } from '@/lib/types'
 
@@ -18,6 +19,8 @@ interface Props {
  * indépendamment du filtre de dates (le libellé le dit explicitement).
  */
 export default function BudgetsPanel({ progresses, className = '' }: Props) {
+  const { isOn } = useForecast()
+
   const visible = progresses.filter(p => !p.isPast && !p.isFuture)
   if (visible.length === 0) return null
 
@@ -34,33 +37,57 @@ export default function BudgetsPanel({ progresses, className = '' }: Props) {
         <ChevronRight size={14} className="text-muted-foreground" />
       </Link>
 
-      <div className="px-6 py-5 space-y-5">
+      <div className="p-3 space-y-2">
         {visible.map(p => {
-          const over = p.status === 'over'
+          const forecast = isOn(p.budget.id)
+          const view = viewBudget(p, forecast)
+          const tint = budgetTint(p)
+          const alert = view.status === 'over' || view.status === 'risk'
+
           return (
-            <div key={p.budget.id}>
-              <BudgetBar progress={p} />
-              <div className="flex items-baseline justify-between gap-2 mt-2 text-[11px]">
-                <span className={over || p.status === 'risk' ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-                  {STATUS_TEXT[p.status]}
-                </span>
-                <span className="text-muted-foreground tabular-nums">
-                  {over
-                    ? `+${formatEUR(-p.remaining)}`
-                    : p.perDayRemaining !== null
-                      ? `${formatEUR(p.perDayRemaining)}/jour · ${p.daysLeft} j`
-                      : `reste ${formatEUR(p.remaining)}`}
-                </span>
+            <div
+              key={p.budget.id}
+              className="flex gap-3 rounded-xl px-3 py-3"
+              style={{ backgroundColor: alpha(tint, 5) }}
+            >
+              <span
+                className="w-1 self-stretch rounded-full shrink-0"
+                style={{ backgroundColor: tint }}
+              />
+              <div className="flex-1 min-w-0">
+                <BudgetBar progress={p} />
+
+                <div className="flex items-baseline justify-between gap-2 mt-2 text-[11px]">
+                  <span className={alert ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                    {STATUS_TEXT[view.status]}
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {view.remaining < 0
+                      ? `+${formatEUR(-view.remaining)}`
+                      : view.perDayRemaining !== null
+                        ? `${formatEUR(view.perDayRemaining)}/jour · ${p.daysLeft} j`
+                        : `reste ${formatEUR(view.remaining)}`}
+                  </span>
+                </div>
+
+                {p.upcoming > 0 && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug">
+                    {forecast ? (
+                      <>
+                        Récurrences comptées&nbsp;: {formatEUR(p.upcoming)} — fin de période
+                        estimée à{' '}
+                        <span className={p.projected > Number(p.budget.amount) ? 'text-destructive font-medium' : 'font-medium'}>
+                          {formatEUR(p.projected)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {formatEUR(p.upcoming)} de récurrences à venir ne sont pas comptés
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
-              {p.upcoming > 0 && (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Récurrentes à venir&nbsp;: {formatEUR(p.upcoming)} → fin de période
-                  estimée à <span className={p.projected > Number(p.budget.amount) ? 'text-destructive font-medium' : ''}>
-                    {formatEUR(p.projected)}
-                  </span>{' '}
-                  <span className="opacity-60">{budgetPeriodLabel(p)}</span>
-                </p>
-              )}
             </div>
           )
         })}

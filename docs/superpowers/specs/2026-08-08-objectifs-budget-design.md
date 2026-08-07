@@ -153,6 +153,49 @@ Validation serveur : montant > 0, cohérence `kind`/`period`/dates,
 - `fetchExpensesForStats` et `fetchExpensesForHistory` inchangées.
 - Vérification finale : `npm run type-check`, `npm run lint`, `npm run build`.
 
+## Ajout — lecture réelle vs prévisionnelle
+
+Chaque objectif se lit de deux façons, commutables par l'interrupteur `↻` posé
+dans l'en-tête de `BudgetBar` (donc présent dans toutes les interfaces où un
+objectif est consultable) :
+
+- **sans** — seules les dépenses déjà passées comptent. La barre s'arrête au
+  dépensé, `remaining` et le statut ignorent les récurrences à venir.
+- **avec** — les occurrences déjà prévues d'ici la fin de la fenêtre s'ajoutent
+  en hachuré et comptent dans `remaining` et le statut.
+
+Exemple : objectif mensuel de 100 €, on est le 8, une récurrence de 40 € tombe
+le 26. En « sans » on lit ce qui est réellement sorti ; en « avec » on voit
+immédiatement si les 100 € vont être dépassés. Pour un objectif **annuel**, la
+fenêtre va du 1er janvier au 31 décembre : « avec » compte donc toutes les
+occurrences mensuelles jusqu'en décembre.
+
+Aucune requête supplémentaire : `upcoming` était déjà calculé sur toute la
+fenêtre. La bascule est purement une lecture (`viewBudget()` dans
+`lib/budgets.ts`).
+
+L'interrupteur n'apparaît que si l'objectif a des récurrences à venir.
+
+**Persistance** — le choix est mémorisé par objectif dans `localStorage`
+(`lib/budget-forecast.ts`), via un store à abonnés partagé au niveau module :
+tous les composants d'une page restent synchronisés sans contexte React, et le
+chargement différé au premier abonnement évite tout écart d'hydratation. Pas de
+colonne en base, donc aucune migration.
+
+## Ajout — présence de la couleur des catégories
+
+- `TagBadge` devient le chip canonique et accepte tout `{ name, color }` — les
+  objectifs global et ponctuels l'utilisent aussi.
+- Chips colorés partout : barres d'objectif, répartition par catégorie, carte
+  « catégorie principale », liste des catégories, toast, formulaire d'objectif.
+- Liséré vertical de la couleur du tag sur chaque carte objectif et chaque
+  ligne de catégorie, avec un fond très pâle de la même teinte.
+- Barres de progression en dégradé + halo (`box-shadow`) de la couleur.
+- Les transparences passent par `color-mix()` (`alpha()` dans `lib/budgets.ts`)
+  et non par concaténation hex, pour fonctionner aussi avec `var(--primary)`.
+
+Le formulaire de création de catégorie (`TagsManager`) n'est pas modifié.
+
 ## Hors scope
 
 - Historique du respect des objectifs sur les mois passés.

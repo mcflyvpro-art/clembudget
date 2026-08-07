@@ -10,7 +10,9 @@ import { CalendarDays, ChevronDown, Sparkles } from 'lucide-react'
 import ExpenseDetailWidget from '@/components/ExpenseDetailWidget'
 import BudgetsPanel from '@/components/budgets/BudgetsPanel'
 import BudgetBar from '@/components/budgets/BudgetBar'
-import { budgetPeriodLabel } from '@/lib/budgets'
+import TagBadge from '@/components/TagBadge'
+import { budgetPeriodLabel, viewBudget } from '@/lib/budgets'
+import { useForecast } from '@/lib/budget-forecast'
 import type { Expense, BudgetProgress } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -104,6 +106,8 @@ export default function StatsClient({ initialFrom, initialTo, initialExpenses, b
   const [customTo,   setCustomTo]   = useState(initialTo)
 
   const [categoriesOpen, setCategoriesOpen] = useState(false)
+
+  const { isOn: forecastIsOn } = useForecast()
 
   const quickRanges       = useMemo(() => buildQuickRanges(),            [])
   const pastMonthsCurYear = useMemo(() => buildPastMonthsCurrentYear(),  [])
@@ -448,31 +452,41 @@ export default function StatsClient({ initialFrom, initialTo, initialExpenses, b
                       return (
                         <div key={item.name}>
                           <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                              <span className="text-sm">{item.name}</span>
-                            </div>
+                            <TagBadge tag={{ name: item.name, color: item.color }} size="md" />
                             <div className="flex items-center gap-3 text-sm tabular-nums">
                               <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                               <span className="font-medium w-20 text-right">{formatEUR(item.value)}</span>
                             </div>
                           </div>
-                          <div className="h-1 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: item.color + 'cc' }} />
+                          <div
+                            className="h-1.5 rounded-full overflow-hidden"
+                            style={{ backgroundColor: `color-mix(in srgb, ${item.color} 12%, transparent)` }}
+                          >
+                            <div
+                              className="h-full rounded-full transition-[width] duration-500 ease-out"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${item.color} 70%, transparent) 0%, ${item.color} 100%)`,
+                                boxShadow: `0 0 8px -1px color-mix(in srgb, ${item.color} 50%, transparent)`,
+                              }}
+                            />
                           </div>
-                          {bp && (
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-[10px] text-muted-foreground shrink-0">
-                                Objectif {formatEUR(Number(bp.budget.amount))}{budgetPeriodLabel(bp)}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <BudgetBar progress={bp} size="sm" showHeader={false} />
+                          {bp && (() => {
+                            const bv = viewBudget(bp, forecastIsOn(bp.budget.id))
+                            return (
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-[10px] text-muted-foreground shrink-0">
+                                  Objectif {formatEUR(Number(bp.budget.amount))}{budgetPeriodLabel(bp)}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <BudgetBar progress={bp} size="sm" showHeader={false} />
+                                </div>
+                                <span className={`text-[10px] tabular-nums shrink-0 ${bv.status === 'over' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                  {bv.pct.toFixed(0)}%
+                                </span>
                               </div>
-                              <span className={`text-[10px] tabular-nums shrink-0 ${bp.status === 'over' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                                {bp.pctSpent.toFixed(0)}%
-                              </span>
-                            </div>
-                          )}
+                            )
+                          })()}
                         </div>
                       )
                     })}
@@ -494,13 +508,22 @@ export default function StatsClient({ initialFrom, initialTo, initialExpenses, b
             <div className={`bg-card rounded-xl border border-border p-6 transition-opacity duration-150 ${loading ? 'opacity-50' : ''}`}>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Catégorie principale</p>
               <div className="flex items-center gap-2.5">
-                <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: topCategory.color }} />
-                <span className="font-medium text-base">{topCategory.name}</span>
+                <TagBadge tag={{ name: topCategory.name, color: topCategory.color }} size="lg" />
                 <span className="text-muted-foreground tabular-nums ml-auto font-medium">{formatEUR(topCategory.value)}</span>
               </div>
               {total > 0 && (
-                <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(topCategory.value / total) * 100}%`, backgroundColor: topCategory.color + 'cc' }} />
+                <div
+                  className="mt-3 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: `color-mix(in srgb, ${topCategory.color} 12%, transparent)` }}
+                >
+                  <div
+                    className="h-full rounded-full transition-[width] duration-500 ease-out"
+                    style={{
+                      width: `${(topCategory.value / total) * 100}%`,
+                      backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${topCategory.color} 70%, transparent) 0%, ${topCategory.color} 100%)`,
+                      boxShadow: `0 0 10px -2px color-mix(in srgb, ${topCategory.color} 60%, transparent)`,
+                    }}
+                  />
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { Pencil, Trash2, Check, X, Plus, Target } from 'lucide-react'
 import { createTag, updateTag, deleteTag } from '@/app/actions'
+import TagBadge from '@/components/TagBadge'
 import { budgetPeriodLabel } from '@/lib/budgets'
 import { formatEUR } from '@/lib/utils'
 import type { Tag, BudgetProgress } from '@/lib/types'
@@ -155,13 +156,16 @@ export default function TagsManager({ initialTags, budgets = [] }: Props) {
           ) : (
             <div
               key={tag.id}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-background hover:bg-muted/20 transition-colors"
+              className="flex items-center gap-3 pl-2.5 pr-4 py-3 rounded-xl border border-border/50 transition-colors hover:brightness-[0.99]"
+              style={{ backgroundColor: `color-mix(in srgb, ${tag.color} 6%, transparent)` }}
             >
-              <div
-                className="w-4 h-4 rounded-full shrink-0"
+              <span
+                className="w-1 self-stretch min-h-[24px] rounded-full shrink-0"
                 style={{ backgroundColor: tag.color }}
               />
-              <span className="flex-1 text-sm font-medium">{tag.name}</span>
+              <span className="flex-1 min-w-0">
+                <TagBadge tag={tag} size="md" />
+              </span>
               {(() => {
                 const bp = budgetByTag.get(tag.id)
                 return (

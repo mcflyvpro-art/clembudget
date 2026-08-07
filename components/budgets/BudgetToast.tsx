@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react'
 import { AlertTriangle, TrendingUp } from 'lucide-react'
-import { budgetName, budgetPeriodLabel } from '@/lib/budgets'
+import TagBadge from '@/components/TagBadge'
+import { budgetName, budgetPeriodLabel, budgetTint, viewBudget } from '@/lib/budgets'
+import { useForecast } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import type { BudgetProgress } from '@/lib/types'
 
@@ -15,6 +17,8 @@ interface Props {
 
 /** Bandeau flottant après l'ajout d'une dépense qui fait franchir un seuil. */
 export default function BudgetToast({ alerts, onDone, duration = 5000 }: Props) {
+  const { isOn } = useForecast()
+
   useEffect(() => {
     if (alerts.length === 0) return
     const t = setTimeout(onDone, duration)
@@ -26,7 +30,8 @@ export default function BudgetToast({ alerts, onDone, duration = 5000 }: Props) 
   return (
     <div className="fixed inset-x-4 bottom-24 z-40 flex flex-col gap-2 lg:inset-x-auto lg:right-8 lg:bottom-8 lg:w-80">
       {alerts.slice(0, 2).map(p => {
-        const over = p.status === 'over'
+        const view = viewBudget(p, isOn(p.budget.id))
+        const over = view.status === 'over'
         return (
           <button
             key={p.budget.id}
@@ -44,13 +49,16 @@ export default function BudgetToast({ alerts, onDone, duration = 5000 }: Props) 
             )}
             <div className="min-w-0">
               <p className={`text-sm font-medium ${over ? 'text-destructive' : ''}`}>
-                {over ? 'Objectif dépassé' : p.status === 'risk' ? 'Dépassement prévu' : 'Bientôt la limite'}
+                {over ? 'Objectif dépassé' : view.status === 'risk' ? 'Dépassement prévu' : 'Bientôt la limite'}
               </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {budgetName(p)} {budgetPeriodLabel(p)} ·{' '}
-                {over
-                  ? `+${formatEUR(-p.remaining)}`
-                  : `reste ${formatEUR(p.remaining)}`}
+              <p className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground min-w-0">
+                <TagBadge tag={{ name: budgetName(p), color: budgetTint(p) }} />
+                <span className="truncate">
+                  {budgetPeriodLabel(p)} ·{' '}
+                  {view.remaining < 0
+                    ? `+${formatEUR(-view.remaining)}`
+                    : `reste ${formatEUR(view.remaining)}`}
+                </span>
               </p>
             </div>
           </button>

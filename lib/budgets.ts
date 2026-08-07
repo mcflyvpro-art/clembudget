@@ -134,6 +134,51 @@ export function buildProgress(
   }
 }
 
+// ── Lecture : réel vs prévision ────────────────────────────────────────────────
+
+export type BudgetView = {
+  forecast: boolean
+  /** Montant retenu pour la lecture : `spent` en réel, `projected` en prévision. */
+  total: number
+  remaining: number
+  pct: number
+  status: BudgetStatus
+  perDayRemaining: number | null
+  /** Ce que la prévision ajoute. 0 si aucune récurrence à venir. */
+  upcoming: number
+}
+
+/**
+ * Deux lectures d'un même objectif :
+ *  - réel      → seules les dépenses déjà passées comptent
+ *  - prévision → les récurrences déjà prévues d'ici la fin de la période comptent
+ *
+ * Exemple : objectif mensuel de 100 €, on est le 8, une récurrence de 40 € tombe
+ * le 26. En réel on lit ce qui est réellement sorti ; en prévision on voit tout
+ * de suite si les 100 € vont être dépassés.
+ */
+export function viewBudget(p: BudgetProgress, forecast: boolean): BudgetView {
+  const amount = Number(p.budget.amount)
+  const total = forecast ? p.projected : p.spent
+  const remaining = amount - total
+  const pct = amount > 0 ? (total / amount) * 100 : 0
+
+  let status: BudgetStatus = 'ok'
+  if (p.spent >= amount) status = 'over'
+  else if (forecast && p.projected >= amount) status = 'risk'
+  else if (total >= amount * WARNING_RATIO) status = 'warning'
+
+  return {
+    forecast,
+    total,
+    remaining,
+    pct,
+    status,
+    perDayRemaining: p.daysLeft > 0 ? remaining / p.daysLeft : null,
+    upcoming: p.upcoming,
+  }
+}
+
 /**
  * Ajoute une dépense à des progressions déjà calculées, sans requête.
  * Utilisé pour l'ajout optimiste sur le dashboard.
@@ -154,17 +199,24 @@ export function applyExpenseToProgress(
   })
 }
 
-/** Objectifs dont la barre a franchi un seuil entre deux états. */
+const STATUS_RANK: Record<BudgetStatus, number> = { ok: 0, warning: 1, risk: 2, over: 3 }
+
+/**
+ * Objectifs dont le statut s'est aggravé entre deux états.
+ * `statusOf` permet de comparer selon la lecture affichée (réel ou prévision)
+ * plutôt que sur le statut brut.
+ */
 export function crossedThresholds(
   before: BudgetProgress[],
-  after: BudgetProgress[]
+  after: BudgetProgress[],
+  statusOf: (p: BudgetProgress) => BudgetStatus = p => p.status
 ): BudgetProgress[] {
-  const prev = new Map(before.map(p => [p.budget.id, p.status]))
-  const rank = { ok: 0, warning: 1, risk: 2, over: 3 }
+  const prev = new Map(before.map(p => [p.budget.id, statusOf(p)]))
   return after.filter(p => {
     const was = prev.get(p.budget.id)
-    if (!was) return false
-    return rank[p.status] > rank[was] && p.status !== 'ok'
+    if (was === undefined) return false
+    const now = statusOf(p)
+    return STATUS_RANK[now] > STATUS_RANK[was] && now !== 'ok'
   })
 }
 
@@ -184,10 +236,23 @@ export function sortByUrgency(list: BudgetProgress[]): BudgetProgress[] {
   })
 }
 
-/** Couleur de la barre : couleur du tag, ou rose primaire pour le global. */
-export function budgetColor(p: BudgetProgress): string {
-  if (p.status === 'over') return 'var(--destructive)'
+/**
+ * Applique une transparence à une couleur, y compris à une variable CSS.
+ * `color + '28'` ne marche que sur un hex ; ici `var(--primary)` passe aussi.
+ */
+export function alpha(color: string, percent: number): string {
+  return `color-mix(in srgb, ${color} ${percent}%, transparent)`
+}
+
+/** Couleur brute de l'objectif : celle du tag, ou le rose primaire pour le global. */
+export function budgetTint(p: BudgetProgress): string {
   return p.budget.tags?.color ?? 'var(--primary)'
+}
+
+/** Couleur d'affichage : rouge en dépassement, couleur de la catégorie sinon. */
+export function budgetColor(p: BudgetProgress, status: BudgetStatus = p.status): string {
+  if (status === 'over') return 'var(--destructive)'
+  return budgetTint(p)
 }
 
 export function budgetName(p: BudgetProgress): string {
