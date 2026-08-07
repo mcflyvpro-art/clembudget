@@ -1,0 +1,304 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "BudgetClem",
+    "languages": ["TypeScript", "CSS"],
+    "frameworks": ["Next.js 16 App Router", "Tailwind CSS v4", "Supabase", "Recharts", "shadcn/ui"],
+    "description": "Application web personnelle de suivi de budget quotidien. Mobile-first, une seule utilisatrice, ajout de dépenses rapide, visualisation camembert, tags, récurrences.",
+    "analyzedAt": "2026-05-21T00:00:00.000Z",
+    "gitCommitHash": "108383cd4b6ea5b4dab8278100bec3d221bf609b"
+  },
+  "layers": [
+    {
+      "id": "layer:config",
+      "name": "Config",
+      "description": "Configuration projet, build, PWA et déploiement",
+      "nodeIds": [
+        "config:next.config.ts",
+        "config:tsconfig.json",
+        "config:package.json",
+        "config:eslint.config.mjs",
+        "config:postcss.config.mjs",
+        "config:components.json",
+        "config:.gitignore"
+      ]
+    },
+    {
+      "id": "layer:auth",
+      "name": "Auth & Supabase",
+      "description": "Clients Supabase (browser/server), helpers auth, layout de protection",
+      "nodeIds": [
+        "file:lib/supabase/client.ts",
+        "file:lib/supabase/server.ts",
+        "file:app/(auth)/login/page.tsx"
+      ]
+    },
+    {
+      "id": "layer:domain",
+      "name": "Domain / DB",
+      "description": "Types métier, helpers de requêtes Supabase, logique de récurrence",
+      "nodeIds": [
+        "file:lib/types.ts",
+        "file:lib/db/expenses.ts",
+        "file:lib/db/tags.ts",
+        "file:lib/date-utils.ts",
+        "file:lib/utils.ts",
+        "file:app/actions.ts"
+      ]
+    },
+    {
+      "id": "layer:pages",
+      "name": "Pages (RSC)",
+      "description": "Server Components Next.js — fetch initial, protection auth, rendu SSR",
+      "nodeIds": [
+        "file:app/layout.tsx",
+        "file:app/(app)/layout.tsx",
+        "file:app/(app)/page.tsx",
+        "file:app/(app)/stats/page.tsx",
+        "file:app/(app)/recurrents/page.tsx",
+        "file:app/(app)/historique/page.tsx",
+        "file:app/(app)/categories/page.tsx",
+        "file:app/(app)/loading.tsx",
+        "file:app/(app)/stats/loading.tsx",
+        "file:app/(app)/recurrents/loading.tsx",
+        "file:app/(app)/historique/loading.tsx",
+        "file:app/(app)/categories/loading.tsx",
+        "file:app/(loading)/init/page.tsx",
+        "file:app/(loading)/layout.tsx",
+        "file:app/manifest.ts"
+      ]
+    },
+    {
+      "id": "layer:client-features",
+      "name": "Client Features",
+      "description": "Composants client interactifs — state, optimistic updates, fetch client-side",
+      "nodeIds": [
+        "file:components/DashboardClient.tsx",
+        "file:components/StatsClient.tsx",
+        "file:components/ArchiveClient.tsx",
+        "file:components/TagsManager.tsx",
+        "file:components/ExpenseForm.tsx",
+        "file:components/AddExpenseSheet.tsx",
+        "file:components/AddExpenseDesktopForm.tsx",
+        "file:components/ExpenseList.tsx",
+        "file:components/ChartPanel.tsx",
+        "file:components/charts/ExpensePieChart.tsx",
+        "file:components/EditRecurringSheet.tsx",
+        "file:components/RecurringActions.tsx",
+        "file:components/NavBar.tsx"
+      ]
+    },
+    {
+      "id": "layer:ui-primitives",
+      "name": "UI Primitives",
+      "description": "Composants shadcn/ui et animations — ne pas modifier directement",
+      "nodeIds": [
+        "file:components/ui/alert-dialog.tsx",
+        "file:components/ui/aurora-background.tsx",
+        "file:components/ui/badge.tsx",
+        "file:components/ui/button.tsx",
+        "file:components/ui/card.tsx",
+        "file:components/ui/input.tsx",
+        "file:components/ui/label.tsx",
+        "file:components/ui/loading-spinner.tsx",
+        "file:components/ui/select.tsx",
+        "file:components/ui/sheet.tsx",
+        "file:components/ui/spiral-animation.tsx",
+        "file:components/ui/tabs.tsx",
+        "file:components/TagBadge.tsx",
+        "file:components/RecurringBadge.tsx",
+        "file:components/EasterEgg.tsx"
+      ]
+    },
+    {
+      "id": "layer:pwa",
+      "name": "PWA",
+      "description": "Service Worker, manifest, install prompt, enregistrement PWA",
+      "nodeIds": [
+        "file:components/pwa-register.tsx",
+        "file:components/install-prompt.tsx",
+        "file:public/sw.js"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Types métier",
+      "description": "Commencer par lib/types.ts pour comprendre les deux entités centrales : Expense (avec récurrence) et Tag. Tout le reste en dérive.",
+      "nodeIds": ["file:lib/types.ts"]
+    },
+    {
+      "order": 2,
+      "title": "Clients Supabase",
+      "description": "lib/supabase/server.ts utilise React.cache() pour dédupliquer les appels auth dans le même rendu RSC. lib/supabase/client.ts gère les cookies de session sans persistance.",
+      "nodeIds": ["file:lib/supabase/server.ts", "file:lib/supabase/client.ts"]
+    },
+    {
+      "order": 3,
+      "title": "Requêtes DB & expansion des récurrences",
+      "description": "lib/db/expenses.ts contient la logique centrale : generateOccurrences() expand les dépenses récurrentes en occurrences individuelles pour les stats et l'historique.",
+      "nodeIds": ["file:lib/db/expenses.ts", "file:lib/db/tags.ts"]
+    },
+    {
+      "order": 4,
+      "title": "Server Actions",
+      "description": "app/actions.ts : CRUD complet (addExpense, updateExpense, deleteExpense, stopRecurring, updateRecurringFromNow, CRUD tags) avec revalidatePath sur toutes les pages affectées.",
+      "nodeIds": ["file:app/actions.ts"]
+    },
+    {
+      "order": 5,
+      "title": "Pages RSC (Server Components)",
+      "description": "Les pages dans app/(app)/ font le fetch initial côté serveur et passent les données aux Client Components. Le layout vérifie la session.",
+      "nodeIds": [
+        "file:app/(app)/layout.tsx",
+        "file:app/(app)/page.tsx",
+        "file:app/(app)/stats/page.tsx",
+        "file:app/(app)/recurrents/page.tsx",
+        "file:app/(app)/historique/page.tsx",
+        "file:app/(app)/categories/page.tsx"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Dashboard — composant principal",
+      "description": "DashboardClient utilise useOptimistic pour l'ajout instantané, puis fetchData() pour resynchroniser avec Supabase. ChartPanel (desktop) et AddExpenseSheet (mobile FAB) s'y intègrent.",
+      "nodeIds": [
+        "file:components/DashboardClient.tsx",
+        "file:components/ChartPanel.tsx",
+        "file:components/AddExpenseSheet.tsx"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Formulaire de dépense",
+      "description": "ExpenseForm est partagé entre ajout (AddExpenseSheet, AddExpenseDesktopForm) et édition (ExpenseList). Gère la récurrence et la validation locale.",
+      "nodeIds": [
+        "file:components/ExpenseForm.tsx",
+        "file:components/AddExpenseDesktopForm.tsx",
+        "file:components/ExpenseList.tsx"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Stats & graphiques",
+      "description": "StatsClient avec race-condition prevention (fetchIdRef). Deux composants chart séparés : ChartPanel (dashboard) et ExpensePieChart (page stats) avec logique quasi-identique.",
+      "nodeIds": [
+        "file:components/StatsClient.tsx",
+        "file:components/charts/ExpensePieChart.tsx"
+      ]
+    }
+  ],
+  "nodes": [
+    { "id": "file:lib/types.ts", "type": "file", "name": "types.ts", "filePath": "lib/types.ts", "summary": "Types TypeScript : Expense, NewExpense, Tag", "tags": ["types", "domain"], "complexity": "simple" },
+    { "id": "file:lib/db/expenses.ts", "type": "file", "name": "expenses.ts", "filePath": "lib/db/expenses.ts", "summary": "Helpers Supabase : fetchExpensesForStats, fetchExpensesForHistory, generateOccurrences (expansion récurrence), helpers dates", "tags": ["db", "recurring", "core"], "complexity": "complex" },
+    { "id": "file:lib/db/tags.ts", "type": "file", "name": "tags.ts", "filePath": "lib/db/tags.ts", "summary": "ensureDefaultTags, deduplicateTags — gestion des tags par défaut et déduplication", "tags": ["db", "tags"], "complexity": "moderate" },
+    { "id": "file:lib/supabase/client.ts", "type": "file", "name": "client.ts", "filePath": "lib/supabase/client.ts", "summary": "createClient() browser — cookies de session sans persistance (maxAge ignoré)", "tags": ["supabase", "auth"], "complexity": "moderate" },
+    { "id": "file:lib/supabase/server.ts", "type": "file", "name": "server.ts", "filePath": "lib/supabase/server.ts", "summary": "createClient() et getUser() côté serveur, wrappés dans React.cache() pour déduplication RSC", "tags": ["supabase", "auth", "server"], "complexity": "moderate" },
+    { "id": "file:lib/date-utils.ts", "type": "file", "name": "date-utils.ts", "filePath": "lib/date-utils.ts", "summary": "todayISO(), shiftAnchor(), formatPeriodLabel(), getDateRange() — navigation temporelle", "tags": ["utils", "dates"], "complexity": "moderate" },
+    { "id": "file:lib/utils.ts", "type": "file", "name": "utils.ts", "filePath": "lib/utils.ts", "summary": "cn() — merge clsx + tailwind-merge", "tags": ["utils"], "complexity": "simple" },
+    { "id": "file:app/actions.ts", "type": "file", "name": "actions.ts", "filePath": "app/actions.ts", "summary": "Server Actions : addExpense, updateExpense, deleteExpense, stopRecurring, updateRecurringFromNow, createTag, updateTag, deleteTag, signOut", "tags": ["server-actions", "crud", "core"], "complexity": "complex" },
+    { "id": "file:app/layout.tsx", "type": "file", "name": "layout.tsx (root)", "filePath": "app/layout.tsx", "summary": "RootLayout — Geist font, PWA metadata, PwaRegister, InstallPrompt", "tags": ["layout", "pwa"], "complexity": "simple" },
+    { "id": "file:app/(app)/layout.tsx", "type": "file", "name": "layout.tsx (app)", "filePath": "app/(app)/layout.tsx", "summary": "AppLayout — vérifie session, rendu NavBar + main content", "tags": ["layout", "auth"], "complexity": "simple" },
+    { "id": "file:app/(app)/page.tsx", "type": "file", "name": "page.tsx (dashboard)", "filePath": "app/(app)/page.tsx", "summary": "DashboardPage RSC — fetch initial mois courant, passe données à DashboardClient", "tags": ["page", "dashboard"], "complexity": "simple" },
+    { "id": "file:app/(app)/stats/page.tsx", "type": "file", "name": "page.tsx (stats)", "filePath": "app/(app)/stats/page.tsx", "summary": "StatsPage RSC — fetch initial selon searchParams, passe à StatsClient", "tags": ["page", "stats"], "complexity": "simple" },
+    { "id": "file:app/(app)/recurrents/page.tsx", "type": "file", "name": "page.tsx (recurrents)", "filePath": "app/(app)/recurrents/page.tsx", "summary": "RecurrentsPage RSC — liste actives/arrêtées, calcul équivalent mensuel", "tags": ["page", "recurring"], "complexity": "moderate" },
+    { "id": "file:app/(app)/historique/page.tsx", "type": "file", "name": "page.tsx (historique)", "filePath": "app/(app)/historique/page.tsx", "summary": "ArchivePage RSC — fetch historique complet, passe à ArchiveClient", "tags": ["page", "history"], "complexity": "simple" },
+    { "id": "file:app/(app)/categories/page.tsx", "type": "file", "name": "page.tsx (categories)", "filePath": "app/(app)/categories/page.tsx", "summary": "CategoriesPage RSC — deduplicateTags + fetch, passe à TagsManager", "tags": ["page", "tags"], "complexity": "simple" },
+    { "id": "file:app/(app)/loading.tsx", "type": "file", "name": "loading.tsx", "filePath": "app/(app)/loading.tsx", "summary": "Loading skeleton dashboard", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(app)/stats/loading.tsx", "type": "file", "name": "loading.tsx (stats)", "filePath": "app/(app)/stats/loading.tsx", "summary": "Loading skeleton stats", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(app)/recurrents/loading.tsx", "type": "file", "name": "loading.tsx (recurrents)", "filePath": "app/(app)/recurrents/loading.tsx", "summary": "Loading skeleton récurrents", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(app)/historique/loading.tsx", "type": "file", "name": "loading.tsx (historique)", "filePath": "app/(app)/historique/loading.tsx", "summary": "Loading skeleton historique", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(app)/categories/loading.tsx", "type": "file", "name": "loading.tsx (categories)", "filePath": "app/(app)/categories/loading.tsx", "summary": "Loading skeleton catégories", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(loading)/init/page.tsx", "type": "file", "name": "init/page.tsx", "filePath": "app/(loading)/init/page.tsx", "summary": "Page d'init/splash — animation de démarrage", "tags": ["loading", "ui"], "complexity": "simple" },
+    { "id": "file:app/(loading)/layout.tsx", "type": "file", "name": "layout.tsx (loading)", "filePath": "app/(loading)/layout.tsx", "summary": "Layout du groupe loading", "tags": ["layout"], "complexity": "simple" },
+    { "id": "file:app/manifest.ts", "type": "file", "name": "manifest.ts", "filePath": "app/manifest.ts", "summary": "PWA manifest — icônes, couleurs, mode standalone", "tags": ["pwa", "config"], "complexity": "simple" },
+    { "id": "file:components/DashboardClient.tsx", "type": "file", "name": "DashboardClient.tsx", "filePath": "components/DashboardClient.tsx", "summary": "Composant client dashboard — useOptimistic, buildPieData, fetchData après mutation, layout responsive", "tags": ["client", "dashboard", "optimistic"], "complexity": "moderate" },
+    { "id": "file:components/StatsClient.tsx", "type": "file", "name": "StatsClient.tsx", "filePath": "components/StatsClient.tsx", "summary": "Composant client stats — filtres période, quick ranges, fetchIdRef race-condition guard, pie chart + insights", "tags": ["client", "stats", "charts"], "complexity": "complex" },
+    { "id": "file:components/ArchiveClient.tsx", "type": "file", "name": "ArchiveClient.tsx", "filePath": "components/ArchiveClient.tsx", "summary": "Historique complet avec filtres et liste groupée par date", "tags": ["client", "history"], "complexity": "moderate" },
+    { "id": "file:components/TagsManager.tsx", "type": "file", "name": "TagsManager.tsx", "filePath": "components/TagsManager.tsx", "summary": "CRUD client-side des tags avec color picker", "tags": ["client", "tags"], "complexity": "moderate" },
+    { "id": "file:components/ExpenseForm.tsx", "type": "file", "name": "ExpenseForm.tsx", "filePath": "components/ExpenseForm.tsx", "summary": "Formulaire partagé ajout/édition dépense — validation locale, récurrence, submittedRef guard double-submit", "tags": ["form", "client"], "complexity": "moderate" },
+    { "id": "file:components/AddExpenseSheet.tsx", "type": "file", "name": "AddExpenseSheet.tsx", "filePath": "components/AddExpenseSheet.tsx", "summary": "FAB mobile + Sheet bottom — déclenche ExpenseForm pour l'ajout", "tags": ["mobile", "form"], "complexity": "simple" },
+    { "id": "file:components/AddExpenseDesktopForm.tsx", "type": "file", "name": "AddExpenseDesktopForm.tsx", "filePath": "components/AddExpenseDesktopForm.tsx", "summary": "Version desktop du formulaire d'ajout, affiché dans ChartPanel sidebar", "tags": ["desktop", "form"], "complexity": "simple" },
+    { "id": "file:components/ExpenseList.tsx", "type": "file", "name": "ExpenseList.tsx", "filePath": "components/ExpenseList.tsx", "summary": "Liste dépenses groupées par date — delete, edit via Sheet, badges tag/récurrence, projections grisées", "tags": ["client", "list"], "complexity": "moderate" },
+    { "id": "file:components/ChartPanel.tsx", "type": "file", "name": "ChartPanel.tsx", "filePath": "components/ChartPanel.tsx", "summary": "Sidebar desktop — donut chart Recharts + légende + AddExpenseDesktopForm", "tags": ["chart", "desktop"], "complexity": "moderate" },
+    { "id": "file:components/charts/ExpensePieChart.tsx", "type": "file", "name": "ExpensePieChart.tsx", "filePath": "components/charts/ExpensePieChart.tsx", "summary": "Donut chart Recharts pour la page stats — similar à ChartPanel mais sans la légende barre", "tags": ["chart"], "complexity": "moderate" },
+    { "id": "file:components/EditRecurringSheet.tsx", "type": "file", "name": "EditRecurringSheet.tsx", "filePath": "components/EditRecurringSheet.tsx", "summary": "Sheet d'édition dépense récurrente — updateRecurringFromNow ou updateExpense", "tags": ["form", "recurring"], "complexity": "moderate" },
+    { "id": "file:components/RecurringActions.tsx", "type": "file", "name": "RecurringActions.tsx", "filePath": "components/RecurringActions.tsx", "summary": "Boutons stop/delete pour dépenses récurrentes avec confirm dialog", "tags": ["actions", "recurring"], "complexity": "simple" },
+    { "id": "file:components/NavBar.tsx", "type": "file", "name": "NavBar.tsx", "filePath": "components/NavBar.tsx", "summary": "Navigation — barre top mobile + sidebar desktop, easter egg logo (7 clics), signOut", "tags": ["nav", "client"], "complexity": "moderate" },
+    { "id": "file:components/TagBadge.tsx", "type": "file", "name": "TagBadge.tsx", "filePath": "components/TagBadge.tsx", "summary": "Badge inline coloré pour un tag", "tags": ["ui", "tags"], "complexity": "simple" },
+    { "id": "file:components/RecurringBadge.tsx", "type": "file", "name": "RecurringBadge.tsx", "filePath": "components/RecurringBadge.tsx", "summary": "Badge fréquence de récurrence", "tags": ["ui", "recurring"], "complexity": "simple" },
+    { "id": "file:components/EasterEgg.tsx", "type": "file", "name": "EasterEgg.tsx", "filePath": "components/EasterEgg.tsx", "summary": "Easter egg déclenché par 7 clics sur le logo", "tags": ["fun", "ui"], "complexity": "simple" },
+    { "id": "file:components/pwa-register.tsx", "type": "file", "name": "pwa-register.tsx", "filePath": "components/pwa-register.tsx", "summary": "Enregistrement Service Worker au mount", "tags": ["pwa"], "complexity": "simple" },
+    { "id": "file:components/install-prompt.tsx", "type": "file", "name": "install-prompt.tsx", "filePath": "components/install-prompt.tsx", "summary": "Prompt d'installation PWA (beforeinstallprompt)", "tags": ["pwa"], "complexity": "simple" },
+    { "id": "file:components/ui/sheet.tsx", "type": "file", "name": "sheet.tsx", "filePath": "components/ui/sheet.tsx", "summary": "shadcn Sheet — drawer bottom/side", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/button.tsx", "type": "file", "name": "button.tsx", "filePath": "components/ui/button.tsx", "summary": "shadcn Button avec variants", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/input.tsx", "type": "file", "name": "input.tsx", "filePath": "components/ui/input.tsx", "summary": "shadcn Input", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/label.tsx", "type": "file", "name": "label.tsx", "filePath": "components/ui/label.tsx", "summary": "shadcn Label", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/badge.tsx", "type": "file", "name": "badge.tsx", "filePath": "components/ui/badge.tsx", "summary": "shadcn Badge", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/card.tsx", "type": "file", "name": "card.tsx", "filePath": "components/ui/card.tsx", "summary": "shadcn Card", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/select.tsx", "type": "file", "name": "select.tsx", "filePath": "components/ui/select.tsx", "summary": "shadcn Select", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/tabs.tsx", "type": "file", "name": "tabs.tsx", "filePath": "components/ui/tabs.tsx", "summary": "shadcn Tabs", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/alert-dialog.tsx", "type": "file", "name": "alert-dialog.tsx", "filePath": "components/ui/alert-dialog.tsx", "summary": "shadcn AlertDialog", "tags": ["ui", "shadcn"], "complexity": "simple" },
+    { "id": "file:components/ui/loading-spinner.tsx", "type": "file", "name": "loading-spinner.tsx", "filePath": "components/ui/loading-spinner.tsx", "summary": "Spinner de chargement", "tags": ["ui", "loading"], "complexity": "simple" },
+    { "id": "file:components/ui/aurora-background.tsx", "type": "file", "name": "aurora-background.tsx", "filePath": "components/ui/aurora-background.tsx", "summary": "Background animé aurora (décoration)", "tags": ["ui", "animation"], "complexity": "simple" },
+    { "id": "file:components/ui/spiral-animation.tsx", "type": "file", "name": "spiral-animation.tsx", "filePath": "components/ui/spiral-animation.tsx", "summary": "Animation spirale GSAP (décoration)", "tags": ["ui", "animation"], "complexity": "simple" },
+    { "id": "file:public/sw.js", "type": "file", "name": "sw.js", "filePath": "public/sw.js", "summary": "Service Worker PWA — cache stratégies, offline support", "tags": ["pwa", "service-worker"], "complexity": "moderate" },
+    { "id": "config:next.config.ts", "type": "config", "name": "next.config.ts", "filePath": "next.config.ts", "summary": "Config Next.js — compression, SVG, cache headers, service worker no-cache", "tags": ["config", "build"], "complexity": "simple" },
+    { "id": "config:tsconfig.json", "type": "config", "name": "tsconfig.json", "filePath": "tsconfig.json", "summary": "Config TypeScript strict", "tags": ["config"], "complexity": "simple" },
+    { "id": "config:package.json", "type": "config", "name": "package.json", "filePath": "package.json", "summary": "Dépendances : Next.js 16, React 19, Supabase SSR, Recharts, shadcn, GSAP, Tailwind v4", "tags": ["config", "deps"], "complexity": "simple" },
+    { "id": "config:components.json", "type": "config", "name": "components.json", "filePath": "components.json", "summary": "Config shadcn/ui", "tags": ["config", "ui"], "complexity": "simple" },
+    { "id": "config:eslint.config.mjs", "type": "config", "name": "eslint.config.mjs", "filePath": "eslint.config.mjs", "summary": "Config ESLint Next.js", "tags": ["config", "lint"], "complexity": "simple" },
+    { "id": "config:postcss.config.mjs", "type": "config", "name": "postcss.config.mjs", "filePath": "postcss.config.mjs", "summary": "Config PostCSS pour Tailwind v4", "tags": ["config", "css"], "complexity": "simple" }
+  ],
+  "edges": [
+    { "source": "file:app/(app)/page.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/page.tsx", "target": "file:lib/db/expenses.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/page.tsx", "target": "file:lib/db/tags.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/page.tsx", "target": "file:components/DashboardClient.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/stats/page.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/stats/page.tsx", "target": "file:lib/db/expenses.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/stats/page.tsx", "target": "file:components/StatsClient.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/recurrents/page.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/historique/page.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/historique/page.tsx", "target": "file:lib/db/expenses.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/historique/page.tsx", "target": "file:components/ArchiveClient.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/categories/page.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/categories/page.tsx", "target": "file:lib/db/tags.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/categories/page.tsx", "target": "file:components/TagsManager.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/layout.tsx", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/layout.tsx", "target": "file:components/NavBar.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/layout.tsx", "target": "file:components/pwa-register.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/layout.tsx", "target": "file:components/install-prompt.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/actions.ts", "target": "file:lib/supabase/server.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/actions.ts", "target": "file:lib/types.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:components/ExpenseList.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:components/AddExpenseSheet.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:components/ChartPanel.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:lib/supabase/client.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/DashboardClient.tsx", "target": "file:lib/db/expenses.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/StatsClient.tsx", "target": "file:lib/supabase/client.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/StatsClient.tsx", "target": "file:lib/db/expenses.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/StatsClient.tsx", "target": "file:components/charts/ExpensePieChart.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseList.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseList.tsx", "target": "file:components/TagBadge.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseList.tsx", "target": "file:components/RecurringBadge.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseList.tsx", "target": "file:components/ExpenseForm.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/AddExpenseSheet.tsx", "target": "file:components/ExpenseForm.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/AddExpenseDesktopForm.tsx", "target": "file:components/ExpenseForm.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ChartPanel.tsx", "target": "file:components/AddExpenseDesktopForm.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseForm.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ExpenseForm.tsx", "target": "file:lib/date-utils.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/NavBar.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/NavBar.tsx", "target": "file:components/EasterEgg.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/EditRecurringSheet.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/RecurringActions.tsx", "target": "file:app/actions.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:components/ArchiveClient.tsx", "target": "file:components/ExpenseList.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/recurrents/page.tsx", "target": "file:components/EditRecurringSheet.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:app/(app)/recurrents/page.tsx", "target": "file:components/RecurringActions.tsx", "type": "imports", "weight": 0.7 },
+    { "source": "file:lib/db/expenses.ts", "target": "file:lib/types.ts", "type": "imports", "weight": 0.7 },
+    { "source": "file:lib/db/tags.ts", "target": "file:lib/supabase/client.ts", "type": "related", "weight": 0.5 },
+    { "source": "config:next.config.ts", "target": "file:public/sw.js", "type": "configures", "weight": 0.6 }
+  ]
+}

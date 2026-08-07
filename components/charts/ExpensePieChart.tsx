@@ -1,6 +1,8 @@
 'use client'
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { useState, useEffect, useMemo } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { formatEUR } from '@/lib/utils'
 
 interface DataPoint {
   name: string
@@ -10,21 +12,6 @@ interface DataPoint {
 
 interface Props {
   data: DataPoint[]
-}
-
-function formatAmount(n: number) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-}
-
-const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { name: string; value: number; payload: DataPoint }[] }) => {
-  if (!active || !payload?.length) return null
-  const { name, value } = payload[0]
-  return (
-    <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-sm text-sm">
-      <p className="font-medium">{name}</p>
-      <p className="text-muted-foreground tabular-nums">{formatAmount(value)}</p>
-    </div>
-  )
 }
 
 const CustomLegend = ({ payload }: { payload?: { value: string; color: string }[] }) => {
@@ -42,6 +29,21 @@ const CustomLegend = ({ payload }: { payload?: { value: string; color: string }[
 }
 
 export default function ExpensePieChart({ data }: Props) {
+  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined)
+  const [isAnimating, setIsAnimating] = useState(true)
+
+  // Stable key basé sur le contenu — change uniquement si les données changent vraiment
+  const pieKey = useMemo(
+    () => data.map(d => `${d.name}:${Math.round(d.value)}`).join('|'),
+    [data]
+  )
+
+  // Réinitialise l'état d'animation à chaque changement de données
+  useEffect(() => {
+    setActiveIndex(undefined)
+    setIsAnimating(true)
+  }, [pieKey])
+
   if (data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
@@ -50,26 +52,64 @@ export default function ExpensePieChart({ data }: Props) {
     )
   }
 
+  const total = data.reduce((s, d) => s + d.value, 0)
+
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={65}
-          outerRadius={105}
-          dataKey="value"
-          paddingAngle={2}
-          strokeWidth={0}
+    <div>
+      <div className="relative h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              key={pieKey}
+              data={data}
+              cx="50%"
+              cy="45%"
+              innerRadius={65}
+              outerRadius={105}
+              dataKey="value"
+              paddingAngle={2}
+              strokeWidth={0}
+              startAngle={90}
+              endAngle={-270}
+              animationDuration={420}
+              animationBegin={0}
+              onAnimationEnd={() => setIsAnimating(false)}
+              onMouseEnter={isAnimating ? undefined : (_: unknown, index: number) => setActiveIndex(index)}
+              onMouseLeave={isAnimating ? undefined : () => setActiveIndex(undefined)}
+            >
+              {data.map((entry, i) => (
+                <Cell
+                  key={i}
+                  fill={entry.color}
+                  opacity={activeIndex !== undefined && activeIndex !== i ? 0.55 : 1}
+                  style={{ transition: 'opacity 0.2s ease' }}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Overlay invisible qui bloque la souris pendant l'animation */}
+        {isAnimating && <div className="absolute inset-0 cursor-default" />}
+
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none"
+          style={{ top: '-10%' }}
         >
-          {data.map((entry, i) => (
-            <Cell key={i} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend content={<CustomLegend />} />
-      </PieChart>
-    </ResponsiveContainer>
+          {!isAnimating && activeIndex !== undefined && activeIndex < data.length ? (
+            <>
+              <span className="text-base font-semibold tabular-nums">{formatEUR(data[activeIndex].value)}</span>
+              <span className="text-xs text-muted-foreground">{data[activeIndex].name}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-xl font-semibold tabular-nums">{formatEUR(total)}</span>
+              <span className="text-xs text-muted-foreground">Total</span>
+            </>
+          )}
+        </div>
+      </div>
+      <CustomLegend payload={data.map(d => ({ value: d.name, color: d.color }))} />
+    </div>
   )
 }

@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2 } from 'lucide-react'
-import type { Expense } from '@/lib/types'
+import { Trash2, Pencil } from 'lucide-react'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { formatEUR } from '@/lib/utils'
+import type { Expense, Tag } from '@/lib/types'
 import TagBadge from './TagBadge'
+import RecurringBadge from './RecurringBadge'
+import ExpenseForm from './ExpenseForm'
 import { deleteExpense } from '@/app/actions'
 
 function formatDate(dateStr: string): string {
@@ -27,17 +31,16 @@ function groupByDate(expenses: Expense[]) {
   return groups
 }
 
-function formatAmount(amount: number) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
-}
-
 interface Props {
   expenses: Expense[]
+  tags: Tag[]
+  onMutation?: () => void
 }
 
-export default function ExpenseList({ expenses }: Props) {
+export default function ExpenseList({ expenses, tags, onMutation }: Props) {
   const [, startTransition] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
 
   if (expenses.length === 0) {
     return (
@@ -55,10 +58,12 @@ export default function ExpenseList({ expenses }: Props) {
     startTransition(async () => {
       await deleteExpense(id)
       setDeletingId(null)
+      onMutation?.()
     })
   }
 
   return (
+    <>
     <div className="space-y-5">
       {sortedDates.map((date) => {
         const dayExpenses = grouped[date]
@@ -71,48 +76,86 @@ export default function ExpenseList({ expenses }: Props) {
                 {formatDate(date)}
               </span>
               <span className="text-xs tabular-nums text-muted-foreground">
-                {formatAmount(dayTotal)}
+                {formatEUR(dayTotal)}
               </span>
             </div>
 
-            <div className="space-y-1">
-              {dayExpenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className={`flex items-center gap-3 bg-card rounded-xl px-3 py-2.5 border border-border/60 group transition-opacity ${
-                    deletingId === expense.id ? 'opacity-40' : ''
-                  }`}
-                >
-                  <span className="tabular-nums font-medium text-sm w-16 shrink-0 text-right">
-                    {formatAmount(Number(expense.amount))}
-                  </span>
+            <div className="space-y-1.5">
+              {dayExpenses.map((expense) => {
+                const isProjection = !!expense.is_projection
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm truncate">{expense.label}</span>
-                      {expense.is_exceptional && (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">excep.</span>
-                      )}
-                      {expense.is_recurring && (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">↻</span>
+                return (
+                  <div
+                    key={expense.id}
+                    className={`flex items-center gap-3 bg-card rounded-xl border border-border/60 group transition-opacity overflow-hidden ${
+                      deletingId === expense.id ? 'opacity-40' : ''
+                    } ${isProjection ? 'opacity-70' : ''}`}
+                  >
+                    {/* Barre couleur catégorie */}
+                    <div
+                      className="w-1 self-stretch shrink-0 min-h-[52px]"
+                      style={{ backgroundColor: expense.tags?.color ?? '#c0b8b0' }}
+                    />
+
+                    {/* Contenu principal */}
+                    <div className="flex-1 min-w-0 py-3">
+                      <p className="text-sm font-medium truncate leading-tight">{expense.label}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {expense.tags && <TagBadge tag={expense.tags} />}
+                        {expense.is_recurring && (
+                          <RecurringBadge frequency={expense.recurrence_frequency} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Montant + actions */}
+                    <div className="shrink-0 flex items-center gap-1 pr-3 py-3">
+                      <span className="tabular-nums font-semibold text-sm mr-1">
+                        {formatEUR(Number(expense.amount))}
+                      </span>
+                      {!isProjection && (
+                        <>
+                          <button
+                            onClick={() => setEditingExpense(expense)}
+                            className="text-muted-foreground hover:text-primary transition-all p-1 rounded md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            disabled={deletingId === expense.id}
+                            className="text-muted-foreground hover:text-destructive transition-all p-1 rounded md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
                       )}
                     </div>
-                    {expense.tags && <TagBadge tag={expense.tags} />}
                   </div>
-
-                  <button
-                    onClick={() => handleDelete(expense.id)}
-                    disabled={deletingId === expense.id}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )
       })}
     </div>
+
+      <Sheet open={!!editingExpense} onOpenChange={(v) => { if (!v) setEditingExpense(null) }}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-w-lg mx-auto px-4 pb-8 max-h-[92dvh] overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-left">Modifier la dépense</SheetTitle>
+          </SheetHeader>
+          {editingExpense && (
+            <ExpenseForm
+              key={editingExpense.id}
+              tags={tags}
+              initialExpense={editingExpense}
+              onSuccess={() => setEditingExpense(null)}
+              onSaved={onMutation}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

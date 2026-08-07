@@ -1,0 +1,49 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+
+# Built-in defaults (always excluded):
+node_modules/
+.git/
+.next/
+dist/
+build/
+out/
+coverage/
+.turbo/
+*.lock
+package-lock.json
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.mp3
+*.mp4
+*.pdf
+*.zip
+*.tar
+*.gz
+*.min.js
+*.min.css
+*.map
+*.generated.*
+.idea/
+.vscode/
+*.log
+
+# --- From .gitignore ---
+# .env*.local
+# .env
+# .vercel
+
+# --- Detected directories (uncomment to exclude) ---
+# public/
+
+# --- Asset directories ---
+asset-21stdev/
+picture/
+public/pictures/

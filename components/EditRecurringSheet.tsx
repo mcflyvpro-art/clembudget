@@ -6,20 +6,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { updateExpense } from '@/app/actions'
+import { updateExpense, updateRecurringFromNow } from '@/app/actions'
+import { FREQUENCIES } from '@/lib/constants'
 import type { Expense, Tag } from '@/lib/types'
 
 interface Props {
   expense: Expense
   tags: Tag[]
 }
-
-const FREQUENCIES = [
-  { value: 'daily',   label: 'Quotidien' },
-  { value: 'weekly',  label: 'Hebdo' },
-  { value: 'monthly', label: 'Mensuel' },
-  { value: 'yearly',  label: 'Annuel' },
-] as const
 
 export default function EditRecurringSheet({ expense, tags }: Props) {
   const [open, setOpen] = useState(false)
@@ -34,27 +28,38 @@ export default function EditRecurringSheet({ expense, tags }: Props) {
   )
   const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  function validate(): { amount: number; label: string } | null {
     const num = parseFloat(amount.replace(',', '.'))
-    if (!num || num <= 0) { setError('Montant invalide'); return }
-    if (!label.trim()) { setError('Ajoute un intitulé'); return }
+    if (!num || num <= 0) { setError('Montant invalide'); return null }
+    if (!label.trim()) { setError('Ajoute un intitulé'); return null }
+    if (!tagId) { setError('Choisis une catégorie'); return null }
     setError(null)
+    return { amount: num, label: label.trim() }
+  }
 
+  function handleUpdateAll() {
+    const v = validate(); if (!v) return
     startTransition(async () => {
       try {
         await updateExpense(expense.id, {
-          amount: num,
-          label: label.trim(),
-          tag_id: tagId,
-          date,
-          is_recurring: true,
-          recurrence_frequency: frequency,
+          amount: v.amount, label: v.label, tag_id: tagId!,
+          date, is_recurring: true, recurrence_frequency: frequency,
         })
         setOpen(false)
-      } catch {
-        setError('Erreur lors de la modification')
-      }
+      } catch { setError('Erreur lors de la modification') }
+    })
+  }
+
+  function handleUpdateFromNow() {
+    const v = validate(); if (!v) return
+    startTransition(async () => {
+      try {
+        await updateRecurringFromNow(expense.id, {
+          amount: v.amount, label: v.label, tag_id: tagId!,
+          date, is_recurring: true, recurrence_frequency: frequency,
+        })
+        setOpen(false)
+      } catch { setError('Erreur lors de la modification') }
     })
   }
 
@@ -72,7 +77,7 @@ export default function EditRecurringSheet({ expense, tags }: Props) {
           <SheetTitle className="text-left">Modifier la récurrence</SheetTitle>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-5">
           <div className="space-y-1.5">
             <Label htmlFor="edit-amount">Montant (€)</Label>
             <div className="relative">
@@ -90,11 +95,7 @@ export default function EditRecurringSheet({ expense, tags }: Props) {
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-label">Intitulé</Label>
-            <Input
-              id="edit-label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
+            <Input id="edit-label" value={label} onChange={(e) => setLabel(e.target.value)} />
           </div>
 
           <div className="space-y-2">
@@ -119,7 +120,7 @@ export default function EditRecurringSheet({ expense, tags }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="edit-date">Date d'ancrage</Label>
+            <Label htmlFor="edit-date">Date d&apos;ancrage</Label>
             <p className="text-xs text-muted-foreground">Jour où tombe la dépense dans le cycle</p>
             <Input
               id="edit-date"
@@ -151,10 +152,27 @@ export default function EditRecurringSheet({ expense, tags }: Props) {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="w-full h-12 text-base">
-            Enregistrer
-          </Button>
-        </form>
+          {/* Deux modes de modification */}
+          <div className="grid gap-2 pt-1">
+            <div className="border border-border rounded-xl p-3 space-y-2">
+              <Button type="button" onClick={handleUpdateFromNow} variant="outline" className="w-full h-11">
+                Modifier à partir d&apos;aujourd&apos;hui
+              </Button>
+              <p className="text-xs text-muted-foreground text-center leading-snug">
+                Ex : loyer qui change — l&apos;historique passé reste intact
+              </p>
+            </div>
+
+            <div className="border border-border rounded-xl p-3 space-y-2">
+              <Button type="button" onClick={handleUpdateAll} className="w-full h-11">
+                Modifier toute la récurrence
+              </Button>
+              <p className="text-xs text-muted-foreground text-center leading-snug">
+                Corrige une erreur — met à jour toutes les occurrences
+              </p>
+            </div>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   )
