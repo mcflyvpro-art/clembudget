@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { AlertTriangle, TrendingUp } from 'lucide-react'
 import TagBadge from '@/components/TagBadge'
 import { budgetName, budgetPeriodLabel, budgetTint, viewBudget } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import type { BudgetProgress } from '@/lib/types'
 
@@ -18,6 +18,7 @@ interface Props {
 /** Bandeau flottant après l'ajout d'une dépense qui fait franchir un seuil. */
 export default function BudgetToast({ alerts, onDone, duration = 5000 }: Props) {
   const { isOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
 
   useEffect(() => {
     if (alerts.length === 0) return
@@ -30,7 +31,7 @@ export default function BudgetToast({ alerts, onDone, duration = 5000 }: Props) 
   return (
     <div className="fixed inset-x-4 bottom-24 z-40 flex flex-col gap-2 lg:inset-x-auto lg:right-8 lg:bottom-8 lg:w-80">
       {alerts.slice(0, 2).map(p => {
-        const view = viewBudget(p, isOn(p.budget.id))
+        const view = viewBudget(p, isOn(p.budget.id), includeRecurring)
         const over = view.status === 'over'
         return (
           <button

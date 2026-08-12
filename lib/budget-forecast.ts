@@ -2,6 +2,56 @@
 
 import { useSyncExternalStore, useCallback } from 'react'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Réglage global : prendre en compte les dépenses récurrentes dans les objectifs
+//
+// Indépendant de la prévision « récurrences à venir ». Désactivé, AUCUNE dépense
+// récurrente (passée ou future) ne compte dans les objectifs — seules les
+// dépenses ponctuelles pèsent. Partagé et persisté comme la préférence forecast.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REC_KEY = 'budgetclem:include-recurring'
+export const INCLUDE_RECURRING_DEFAULT = true
+
+let includeRecurring = INCLUDE_RECURRING_DEFAULT
+let recLoaded = false
+const recListeners = new Set<() => void>()
+
+function recEmit() { for (const l of recListeners) l() }
+
+function recLoad() {
+  if (recLoaded || typeof window === 'undefined') return
+  recLoaded = true
+  try {
+    const raw = window.localStorage.getItem(REC_KEY)
+    if (raw !== null) { includeRecurring = raw === '1'; recEmit() }
+  } catch {
+    // localStorage indisponible : on garde le défaut
+  }
+}
+
+function recSubscribe(cb: () => void) {
+  recListeners.add(cb)
+  recLoad()
+  return () => { recListeners.delete(cb) }
+}
+
+const recGetSnapshot = () => includeRecurring
+const recGetServerSnapshot = () => INCLUDE_RECURRING_DEFAULT
+
+export function setIncludeRecurring(on: boolean) {
+  includeRecurring = on
+  try { window.localStorage.setItem(REC_KEY, on ? '1' : '0') } catch { /* ignore */ }
+  recEmit()
+}
+
+/** `on` = les récurrences comptent dans les objectifs. `toggle()` bascule. */
+export function useIncludeRecurring() {
+  const on = useSyncExternalStore(recSubscribe, recGetSnapshot, recGetServerSnapshot)
+  const toggle = useCallback(() => setIncludeRecurring(!on), [on])
+  return { on, toggle }
+}
+
 /**
  * Préférence « compter les récurrences à venir » — une par objectif.
  *

@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchExpensesForStats, getStartOfMonth, getEndOfMonth } from '@/lib/db/expenses'
 import { formatEUR, buildPieData } from '@/lib/utils'
 import { applyExpenseToProgress, crossedThresholds, viewBudget } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import type { Expense, Tag, NewExpense, BudgetProgress } from '@/lib/types'
 
 interface Props {
@@ -31,6 +31,7 @@ export default function DashboardClient({ initialExpenses, tags, month, initialB
   const [budgets, setBudgets] = useState<BudgetProgress[]>(initialBudgets)
   const [alerts, setAlerts] = useState<BudgetProgress[]>([])
   const { isOn: forecastIsOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
 
   // Snapshot lisible depuis un handler sans dépendre du rendu courant
   const budgetsRef = useRef(budgets)
@@ -80,11 +81,12 @@ export default function DashboardClient({ initialExpenses, tags, month, initialB
         amount: data.amount,
         tag_id: data.tag_id,
         date: data.date,
+        is_recurring: data.is_recurring,
       })
       setBudgets(after)
       // Seuils évalués selon la lecture affichée (avec ou sans récurrences)
       const crossed = crossedThresholds(before, after, p =>
-        viewBudget(p, forecastIsOn(p.budget.id)).status
+        viewBudget(p, forecastIsOn(p.budget.id), includeRecurring).status
       )
       if (crossed.length > 0) setAlerts(crossed)
     }

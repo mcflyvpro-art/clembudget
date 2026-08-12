@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Target, ChevronRight } from 'lucide-react'
 import BudgetBar from './BudgetBar'
 import { STATUS_TEXT, budgetTint, alpha, viewBudget } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import type { BudgetProgress } from '@/lib/types'
 
@@ -20,6 +20,7 @@ interface Props {
  */
 export default function BudgetsPanel({ progresses, className = '' }: Props) {
   const { isOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
 
   const visible = progresses.filter(p => !p.isPast && !p.isFuture)
   if (visible.length === 0) return null
@@ -40,9 +41,11 @@ export default function BudgetsPanel({ progresses, className = '' }: Props) {
       <div className="p-3 space-y-2">
         {visible.map(p => {
           const forecast = isOn(p.budget.id)
-          const view = viewBudget(p, forecast)
+          const view = viewBudget(p, forecast, includeRecurring)
           const tint = budgetTint(p)
           const alert = view.status === 'over' || view.status === 'risk'
+          const effUpcoming = includeRecurring ? p.upcoming : p.upcoming - p.upcomingRecurring
+          const effProjected = view.total + (forecast ? 0 : effUpcoming)
 
           return (
             <div
@@ -70,19 +73,19 @@ export default function BudgetsPanel({ progresses, className = '' }: Props) {
                   </span>
                 </div>
 
-                {p.upcoming > 0 && (
+                {includeRecurring && effUpcoming > 0 && (
                   <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug">
                     {forecast ? (
                       <>
-                        Récurrences comptées&nbsp;: {formatEUR(p.upcoming)} — fin de période
+                        Récurrences comptées&nbsp;: {formatEUR(effUpcoming)} — fin de période
                         estimée à{' '}
-                        <span className={p.projected > Number(p.budget.amount) ? 'text-destructive font-medium' : 'font-medium'}>
-                          {formatEUR(p.projected)}
+                        <span className={effProjected > Number(p.budget.amount) ? 'text-destructive font-medium' : 'font-medium'}>
+                          {formatEUR(effProjected)}
                         </span>
                       </>
                     ) : (
                       <>
-                        {formatEUR(p.upcoming)} de récurrences à venir ne sont pas comptés
+                        {formatEUR(effUpcoming)} de récurrences à venir ne sont pas comptés
                       </>
                     )}
                   </p>

@@ -12,7 +12,7 @@ import {
   budgetTint,
   viewBudget,
 } from '@/lib/budgets'
-import { useForecast, setForecastMany } from '@/lib/budget-forecast'
+import { useForecast, setForecastMany, useIncludeRecurring } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import { todayISO } from '@/lib/date-utils'
 import BudgetBar from './BudgetBar'
@@ -119,9 +119,10 @@ function BudgetRow({
   disabled: boolean
 }) {
   const { isOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
   const b = progress.budget
   const paused = !b.is_active
-  const view = viewBudget(progress, isOn(b.id))
+  const view = viewBudget(progress, isOn(b.id), includeRecurring)
   const tint = budgetTint(progress)
   const alert = view.status === 'over' || view.status === 'risk'
 
@@ -209,64 +210,122 @@ function Section({
   )
 }
 
+/** Petit sélecteur segmenté à deux options (on / off). */
+function Segmented({
+  leftLabel,
+  rightLabel,
+  right,
+  onLeft,
+  onRight,
+  disabled = false,
+}: {
+  leftLabel: string
+  rightLabel: string
+  right: boolean
+  onLeft: () => void
+  onRight: () => void
+  disabled?: boolean
+}) {
+  return (
+    <div
+      className={`grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 shrink-0 w-[136px] ${
+        disabled ? 'opacity-40 pointer-events-none' : ''
+      }`}
+      role="group"
+    >
+      <button
+        type="button"
+        onClick={onLeft}
+        aria-pressed={!right}
+        className={`px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+          !right ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+        }`}
+      >
+        {leftLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onRight}
+        aria-pressed={right}
+        className={`px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+          right ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+        }`}
+      >
+        {rightLabel}
+      </button>
+    </div>
+  )
+}
+
 /**
- * Contrôle global « Réel / Prévision » — toujours visible en tête de page.
+ * Contrôles des récurrences — toujours visibles en tête de la page Objectifs.
  *
- * Sur mobile, l'interrupteur ↻ des barres est facile à manquer ; ce sélecteur
- * bascule d'un coup toutes les prévisions à venir, avec ou sans les récurrences.
+ * Deux réglages indépendants, faciles à trouver sur mobile :
+ *  1. Récurrences prises en compte ou non (passées ET futures).
+ *  2. Récurrences à venir ajoutées ou non (prévision), quand elles sont prises
+ *     en compte.
  */
-function ForecastControl({
-  ids,
-  allOn,
+function RecurrenceControls({
+  forecastIds,
+  allForecastOn,
   upcomingTotal,
 }: {
-  ids: string[]
-  allOn: boolean
+  forecastIds: string[]
+  allForecastOn: boolean
   upcomingTotal: number
 }) {
-  const hasForecast = ids.length > 0
+  const { on: includeRecurring, toggle: toggleInclude } = useIncludeRecurring()
+  const hasForecast = forecastIds.length > 0
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-2 min-w-0 px-1">
-        <Repeat size={14} className="text-muted-foreground shrink-0" />
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium leading-tight">Récurrences à venir</p>
-          <p className="text-[11px] text-muted-foreground leading-tight">
-            {hasForecast
-              ? `${formatEUR(upcomingTotal)} prévus d’ici la fin de la période`
-              : 'Aucune récurrence à venir pour l’instant'}
-          </p>
+    <div className="rounded-2xl border border-border/60 bg-card divide-y divide-border/50">
+      {/* 1 · Prise en compte totale des récurrences */}
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
+        <div className="flex items-center gap-2 min-w-0 px-1">
+          <Repeat size={14} className="text-muted-foreground shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium leading-tight">Récurrences</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              {includeRecurring
+                ? 'Comptées dans les objectifs'
+                : 'Ignorées — seules les dépenses ponctuelles comptent'}
+            </p>
+          </div>
         </div>
+        <Segmented
+          leftLabel="Non"
+          rightLabel="Oui"
+          right={includeRecurring}
+          onLeft={() => { if (includeRecurring) toggleInclude() }}
+          onRight={() => { if (!includeRecurring) toggleInclude() }}
+        />
       </div>
 
-      <div
-        className={`grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 shrink-0 ${
-          hasForecast ? '' : 'opacity-40 pointer-events-none'
-        }`}
-        role="group"
-        aria-label="Afficher les récurrences à venir"
-      >
-        <button
-          type="button"
-          onClick={() => setForecastMany(ids, false)}
-          aria-pressed={!allOn}
-          className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-            !allOn ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
-          }`}
-        >
-          Sans
-        </button>
-        <button
-          type="button"
-          onClick={() => setForecastMany(ids, true)}
-          aria-pressed={allOn}
-          className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-            allOn ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
-          }`}
-        >
-          Avec
-        </button>
+      {/* 2 · Récurrences à venir (prévision) */}
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
+        <div className="flex items-center gap-2 min-w-0 px-1">
+          <CalendarRange size={14} className="text-muted-foreground shrink-0" />
+          <div className="min-w-0">
+            <p className={`text-[13px] font-medium leading-tight ${includeRecurring ? '' : 'text-muted-foreground'}`}>
+              Récurrences à venir
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              {!includeRecurring
+                ? 'Indisponible (récurrences ignorées)'
+                : hasForecast
+                  ? `${formatEUR(upcomingTotal)} prévus d’ici la fin de la période`
+                  : 'Aucune récurrence à venir pour l’instant'}
+            </p>
+          </div>
+        </div>
+        <Segmented
+          leftLabel="Sans"
+          rightLabel="Avec"
+          right={allForecastOn}
+          onLeft={() => setForecastMany(forecastIds, false)}
+          onRight={() => setForecastMany(forecastIds, true)}
+          disabled={!includeRecurring || !hasForecast}
+        />
       </div>
     </div>
   )
@@ -282,6 +341,7 @@ interface Props {
 
 export default function BudgetsManager({ budgets, progresses, tags }: Props) {
   const { isOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
   const [form, setForm] = useState<FormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -302,7 +362,7 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
         budget: b,
         from: b.start_date ?? '',
         to: b.end_date ?? '',
-        spent: 0, upcoming: 0, projected: 0,
+        spent: 0, spentRecurring: 0, upcoming: 0, upcomingRecurring: 0, projected: 0,
         remaining: Number(b.amount),
         daysLeft: 0, perDayRemaining: null,
         pctSpent: 0, pctProjected: 0,
@@ -425,7 +485,11 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
       {/* ── Liste ── */}
       <div className="space-y-6 mb-8 lg:mb-0">
         {rows.length > 0 && (
-          <ForecastControl ids={forecastIds} allOn={allForecastOn} upcomingTotal={upcomingTotal} />
+          <RecurrenceControls
+            forecastIds={forecastIds}
+            allForecastOn={allForecastOn}
+            upcomingTotal={upcomingTotal}
+          />
         )}
 
         {rows.length === 0 && (
@@ -635,7 +699,7 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
         {rows.length > 0 && (
           <div className="mt-5 pt-4 border-t border-border/60 space-y-2">
             {progresses.filter(p => !p.isPast && !p.isFuture).slice(0, 3).map(p => {
-              const view = viewBudget(p, isOn(p.budget.id))
+              const view = viewBudget(p, isOn(p.budget.id), includeRecurring)
               return (
                 <div key={p.budget.id} className="flex items-center justify-between gap-2 text-[11px]">
                   <span className="flex items-center gap-1.5 min-w-0">

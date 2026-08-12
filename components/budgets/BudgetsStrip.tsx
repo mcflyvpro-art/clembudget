@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Target, ChevronRight, AlertTriangle } from 'lucide-react'
 import BudgetBar from './BudgetBar'
 import { STATUS_TEXT, budgetName, budgetTint, alpha, viewBudget } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import type { BudgetProgress } from '@/lib/types'
 
 interface Props {
@@ -17,13 +17,14 @@ interface Props {
 /** Bandeau compact du dashboard. Invisible tant qu'aucun objectif n'est défini. */
 export default function BudgetsStrip({ progresses, limit = 4, className = '' }: Props) {
   const { isOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
 
   const visible = progresses.filter(p => !p.isPast && !p.isFuture)
   if (visible.length === 0) return null
 
   const shown = visible.slice(0, limit)
   const alerts = visible.filter(p => {
-    const s = viewBudget(p, isOn(p.budget.id)).status
+    const s = viewBudget(p, isOn(p.budget.id), includeRecurring).status
     return s === 'over' || s === 'risk'
   })
 
@@ -48,7 +49,7 @@ export default function BudgetsStrip({ progresses, limit = 4, className = '' }: 
           <AlertTriangle size={13} className="text-destructive shrink-0 mt-0.5" />
           <p className="text-[11px] text-destructive leading-snug">
             {alerts.length === 1
-              ? `${STATUS_TEXT[viewBudget(alerts[0], isOn(alerts[0].budget.id)).status]} — ${budgetName(alerts[0])}`
+              ? `${STATUS_TEXT[viewBudget(alerts[0], isOn(alerts[0].budget.id), includeRecurring).status]} — ${budgetName(alerts[0])}`
               : `${alerts.length} objectifs en dépassement ou à risque`}
           </p>
         </div>

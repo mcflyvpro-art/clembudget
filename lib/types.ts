@@ -57,7 +57,9 @@ export type BudgetProgress = {
   from: string
   to: string
   spent: number       // dépensé jusqu'à aujourd'hui inclus
+  spentRecurring: number    // part récurrente du dépensé (passée)
   upcoming: number    // récurrentes prévues d'ici la fin de la fenêtre
+  upcomingRecurring: number // part récurrente de l'à-venir
   projected: number   // spent + upcoming
   remaining: number   // amount - spent (peut être négatif)
   daysLeft: number    // jours restants dans la fenêtre, aujourd'hui inclus

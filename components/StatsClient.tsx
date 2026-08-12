@@ -12,7 +12,7 @@ import BudgetsPanel from '@/components/budgets/BudgetsPanel'
 import BudgetBar from '@/components/budgets/BudgetBar'
 import TagBadge from '@/components/TagBadge'
 import { budgetPeriodLabel, viewBudget } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import type { Expense, BudgetProgress } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,6 +108,7 @@ export default function StatsClient({ initialFrom, initialTo, initialExpenses, b
   const [categoriesOpen, setCategoriesOpen] = useState(false)
 
   const { isOn: forecastIsOn } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
 
   const quickRanges       = useMemo(() => buildQuickRanges(),            [])
   const pastMonthsCurYear = useMemo(() => buildPastMonthsCurrentYear(),  [])
@@ -472,7 +473,7 @@ export default function StatsClient({ initialFrom, initialTo, initialExpenses, b
                             />
                           </div>
                           {bp && (() => {
-                            const bv = viewBudget(bp, forecastIsOn(bp.budget.id))
+                            const bv = viewBudget(bp, forecastIsOn(bp.budget.id), includeRecurring)
                             return (
                               <div className="flex items-center gap-2 mt-1.5">
                                 <span className="text-[10px] text-muted-foreground shrink-0">

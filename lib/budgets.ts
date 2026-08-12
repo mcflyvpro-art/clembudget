@@ -76,17 +76,24 @@ export function computeProgress(
   const { from, to } = getBudgetWindow(budget, today)
 
   let spent = 0
+  let spentRecurring = 0
   let upcoming = 0
+  let upcomingRecurring = 0
 
   for (const e of expenses) {
     if (e.date < from || e.date > to) continue
     if (budget.tag_id !== null && e.tag_id !== budget.tag_id) continue
     const amount = Number(e.amount)
-    if (e.date <= today) spent += amount
-    else upcoming += amount
+    if (e.date <= today) {
+      spent += amount
+      if (e.is_recurring) spentRecurring += amount
+    } else {
+      upcoming += amount
+      if (e.is_recurring) upcomingRecurring += amount
+    }
   }
 
-  return buildProgress(budget, from, to, spent, upcoming, today)
+  return buildProgress(budget, from, to, spent, upcoming, today, spentRecurring, upcomingRecurring)
 }
 
 /** Assemble un BudgetProgress à partir de totaux déjà calculés. */
@@ -96,7 +103,9 @@ export function buildProgress(
   to: string,
   spent: number,
   upcoming: number,
-  today = todayISO()
+  today = todayISO(),
+  spentRecurring = 0,
+  upcomingRecurring = 0
 ): BudgetProgress {
   const amount = Number(budget.amount)
   const projected = spent + upcoming
@@ -121,7 +130,9 @@ export function buildProgress(
     from,
     to,
     spent,
+    spentRecurring,
     upcoming,
+    upcomingRecurring,
     projected,
     remaining,
     daysLeft,
@@ -149,23 +160,37 @@ export type BudgetView = {
 }
 
 /**
- * Deux lectures d'un même objectif :
- *  - réel      → seules les dépenses déjà passées comptent
- *  - prévision → les récurrences déjà prévues d'ici la fin de la période comptent
+ * Lecture d'un objectif, pilotée par deux réglages indépendants :
+ *
+ *  - `includeRecurring` (défaut true) → prend en compte, ou non, TOUTES les
+ *    dépenses récurrentes, qu'elles soient passées ou à venir. Désactivé, seules
+ *    les dépenses ponctuelles comptent dans l'objectif.
+ *  - `forecast` → ajoute (ou non) les récurrences déjà prévues d'ici la fin de
+ *    la période, pour voir venir un dépassement avant qu'il arrive.
  *
  * Exemple : objectif mensuel de 100 €, on est le 8, une récurrence de 40 € tombe
  * le 26. En réel on lit ce qui est réellement sorti ; en prévision on voit tout
  * de suite si les 100 € vont être dépassés.
  */
-export function viewBudget(p: BudgetProgress, forecast: boolean): BudgetView {
+export function viewBudget(
+  p: BudgetProgress,
+  forecast: boolean,
+  includeRecurring = true
+): BudgetView {
   const amount = Number(p.budget.amount)
-  const total = forecast ? p.projected : p.spent
+
+  // Base « dépensé » et « à venir », amputées des récurrences si on les ignore.
+  const spent    = includeRecurring ? p.spent    : p.spent    - p.spentRecurring
+  const upcoming = includeRecurring ? p.upcoming : p.upcoming - p.upcomingRecurring
+  const projected = spent + upcoming
+
+  const total = forecast ? projected : spent
   const remaining = amount - total
   const pct = amount > 0 ? (total / amount) * 100 : 0
 
   let status: BudgetStatus = 'ok'
-  if (p.spent >= amount) status = 'over'
-  else if (forecast && p.projected >= amount) status = 'risk'
+  if (spent >= amount) status = 'over'
+  else if (forecast && projected >= amount) status = 'risk'
   else if (total >= amount * WARNING_RATIO) status = 'warning'
 
   return {
@@ -175,7 +200,7 @@ export function viewBudget(p: BudgetProgress, forecast: boolean): BudgetView {
     pct,
     status,
     perDayRemaining: p.daysLeft > 0 ? remaining / p.daysLeft : null,
-    upcoming: p.upcoming,
+    upcoming,
   }
 }
 
@@ -185,7 +210,7 @@ export function viewBudget(p: BudgetProgress, forecast: boolean): BudgetView {
  */
 export function applyExpenseToProgress(
   list: BudgetProgress[],
-  expense: { amount: number; tag_id: string | null; date: string },
+  expense: { amount: number; tag_id: string | null; date: string; is_recurring?: boolean },
   today = todayISO()
 ): BudgetProgress[] {
   return list.map(p => {
@@ -193,9 +218,13 @@ export function applyExpenseToProgress(
     if (p.budget.tag_id !== null && p.budget.tag_id !== expense.tag_id) return p
 
     const amount = Number(expense.amount)
-    const spent    = p.spent    + (expense.date <= today ? amount : 0)
-    const upcoming = p.upcoming + (expense.date >  today ? amount : 0)
-    return buildProgress(p.budget, p.from, p.to, spent, upcoming, today)
+    const isPast = expense.date <= today
+    const rec = expense.is_recurring === true
+    const spent             = p.spent             + (isPast ? amount : 0)
+    const upcoming          = p.upcoming          + (isPast ? 0 : amount)
+    const spentRecurring    = p.spentRecurring    + (isPast && rec ? amount : 0)
+    const upcomingRecurring = p.upcomingRecurring + (!isPast && rec ? amount : 0)
+    return buildProgress(p.budget, p.from, p.to, spent, upcoming, today, spentRecurring, upcomingRecurring)
   })
 }
 

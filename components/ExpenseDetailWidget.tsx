@@ -413,10 +413,13 @@ export default function ExpenseDetailWidget({ expenses, from, to }: Props) {
             cursor:     canDrill && entry.total > 0 ? 'pointer' : 'default',
           }}
           onMouseEnter={() => {
-            const rect = chartContainerRef.current?.getBoundingClientRect()
+            const el = chartContainerRef.current
+            const rect = el?.getBoundingClientRect()
+            const scrollLeft = el?.scrollLeft ?? 0
             setHoveredBar({
               index, point: entry, svgX: x + width / 2, svgY: y, barHeight: h,
-              screenX: (rect?.left ?? 0) + x + width / 2,
+              // Le conteneur peut défiler : on retranche le décalage horizontal.
+              screenX: (rect?.left ?? 0) + x + width / 2 - scrollLeft,
               screenY: (rect?.top  ?? 0) + y,
             })
           }}
@@ -495,14 +498,25 @@ export default function ExpenseDetailWidget({ expenses, from, to }: Props) {
                   ) : null}
                 </div>
 
-                {/* Conteneur chart — ref pour positionner le tooltip */}
+                {/* Conteneur chart — ref pour positionner le tooltip.
+                    En vue « jour », on donne à chaque jour une largeur minimale
+                    et on laisse défiler horizontalement : tous les jours du mois
+                    restent lisibles sur un téléphone au lieu d'être écrasés. */}
                 <div
                   ref={chartContainerRef}
-                  className="relative"
+                  className="relative overflow-x-auto overflow-y-hidden [scrollbar-width:thin]"
                   style={{ height: isDayView ? 260 : 240 }}
                 >
                   {/* Chart avec fade */}
-                  <div style={{ opacity: chartVisible ? 1 : 0, transition: 'opacity 0.18s ease', height: '100%' }}>
+                  <div
+                    style={{
+                      opacity: chartVisible ? 1 : 0,
+                      transition: 'opacity 0.18s ease',
+                      height: '100%',
+                      width: isDayView ? `${activePoints.length * 30}px` : '100%',
+                      minWidth: '100%',
+                    }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={scaledPoints}
@@ -537,6 +551,12 @@ export default function ExpenseDetailWidget({ expenses, from, to }: Props) {
                     : <>Pic : <span className="font-medium text-foreground">{formatEUR(maxVal)}</span></>
                   }
                 </p>
+
+                {isDayView && activePoints.length > 12 && (
+                  <p className="sm:hidden text-[11px] text-muted-foreground/70 text-center mt-0.5">
+                    ← fais glisser pour voir tous les jours →
+                  </p>
+                )}
               </div>
             )}
 

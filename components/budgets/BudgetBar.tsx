@@ -11,7 +11,7 @@ import {
   budgetPeriodLabel,
   viewBudget,
 } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, useIncludeRecurring } from '@/lib/budget-forecast'
 import type { BudgetProgress } from '@/lib/types'
 
 /**
@@ -47,8 +47,9 @@ export default function BudgetBar({
   className = '',
 }: Props) {
   const { isOn, toggle } = useForecast()
+  const { on: includeRecurring } = useIncludeRecurring()
   const forecast = isOn(progress.budget.id)
-  const view = viewBudget(progress, forecast)
+  const view = viewBudget(progress, forecast, includeRecurring)
 
   const amount = Number(progress.budget.amount)
   const tint = budgetTint(progress)
@@ -56,11 +57,15 @@ export default function BudgetBar({
   const over = view.status === 'over'
   const risk = view.status === 'risk'
 
-  // Largeurs relatives au plafond, cumul écrêté à 100 %.
-  const spentW = Math.min(100, (progress.spent / amount) * 100)
-  const upcomingW = forecast ? Math.min(100 - spentW, (progress.upcoming / amount) * 100) : 0
+  // Bases effectives : récurrences retirées si l'utilisatrice les a désactivées.
+  const effSpent    = includeRecurring ? progress.spent    : progress.spent    - progress.spentRecurring
+  const effUpcoming = includeRecurring ? progress.upcoming : progress.upcoming - progress.upcomingRecurring
 
-  const hasUpcoming = progress.upcoming > 0
+  // Largeurs relatives au plafond, cumul écrêté à 100 %.
+  const spentW = Math.min(100, (effSpent / amount) * 100)
+  const upcomingW = forecast ? Math.min(100 - spentW, (effUpcoming / amount) * 100) : 0
+
+  const hasUpcoming = effUpcoming > 0
   const canToggle = hasUpcoming && !hideToggle
 
   return (
@@ -84,8 +89,8 @@ export default function BudgetBar({
                 onClick={() => toggle(progress.budget.id)}
                 title={
                   forecast
-                    ? `Récurrences à venir comptées (${formatEUR(progress.upcoming)}) — cliquer pour les retirer`
-                    : `Récurrences à venir ignorées (${formatEUR(progress.upcoming)}) — cliquer pour les compter`
+                    ? `Récurrences à venir comptées (${formatEUR(effUpcoming)}) — cliquer pour les retirer`
+                    : `Récurrences à venir ignorées (${formatEUR(effUpcoming)}) — cliquer pour les compter`
                 }
                 aria-pressed={forecast}
                 className={`flex items-center gap-1 pl-1 pr-1.5 py-0.5 rounded-full text-[10px] font-medium border transition-all cursor-pointer ${
