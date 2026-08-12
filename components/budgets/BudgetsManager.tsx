@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { Pencil, Trash2, Plus, X, Check, Pause, Play, Target, CalendarRange, Layers } from 'lucide-react'
+import { Pencil, Trash2, Plus, X, Check, Pause, Play, Target, CalendarRange, Layers, Repeat } from 'lucide-react'
 import { createBudget, updateBudget, deleteBudget, toggleBudget } from '@/app/actions'
 import {
   BUDGET_PERIODS,
@@ -12,7 +12,7 @@ import {
   budgetTint,
   viewBudget,
 } from '@/lib/budgets'
-import { useForecast } from '@/lib/budget-forecast'
+import { useForecast, setForecastMany } from '@/lib/budget-forecast'
 import { formatEUR } from '@/lib/utils'
 import { todayISO } from '@/lib/date-utils'
 import BudgetBar from './BudgetBar'
@@ -209,6 +209,69 @@ function Section({
   )
 }
 
+/**
+ * Contrôle global « Réel / Prévision » — toujours visible en tête de page.
+ *
+ * Sur mobile, l'interrupteur ↻ des barres est facile à manquer ; ce sélecteur
+ * bascule d'un coup toutes les prévisions à venir, avec ou sans les récurrences.
+ */
+function ForecastControl({
+  ids,
+  allOn,
+  upcomingTotal,
+}: {
+  ids: string[]
+  allOn: boolean
+  upcomingTotal: number
+}) {
+  const hasForecast = ids.length > 0
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-2 min-w-0 px-1">
+        <Repeat size={14} className="text-muted-foreground shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium leading-tight">Récurrences à venir</p>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {hasForecast
+              ? `${formatEUR(upcomingTotal)} prévus d’ici la fin de la période`
+              : 'Aucune récurrence à venir pour l’instant'}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className={`grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 shrink-0 ${
+          hasForecast ? '' : 'opacity-40 pointer-events-none'
+        }`}
+        role="group"
+        aria-label="Afficher les récurrences à venir"
+      >
+        <button
+          type="button"
+          onClick={() => setForecastMany(ids, false)}
+          aria-pressed={!allOn}
+          className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+            !allOn ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+          }`}
+        >
+          Sans
+        </button>
+        <button
+          type="button"
+          onClick={() => setForecastMany(ids, true)}
+          aria-pressed={allOn}
+          className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+            allOn ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+          }`}
+        >
+          Avec
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Composant principal ───────────────────────────────────────────────────────
 
 interface Props {
@@ -252,6 +315,12 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
   const globalRows   = rows.filter(r => r.budget.kind === 'recurring' && r.budget.tag_id === null)
   const categoryRows = rows.filter(r => r.budget.kind === 'recurring' && r.budget.tag_id !== null)
   const oneshotRows  = rows.filter(r => r.budget.kind === 'oneshot')
+
+  // Objectifs en cours ayant des récurrences à venir : cibles du contrôle global.
+  const forecastable = rows.filter(r => !r.isPast && !r.isFuture && r.upcoming > 0)
+  const forecastIds = forecastable.map(r => r.budget.id)
+  const upcomingTotal = forecastable.reduce((sum, r) => sum + r.upcoming, 0)
+  const allForecastOn = forecastIds.length > 0 && forecastIds.every(id => isOn(id))
 
   // Catégories déjà pourvues d'un objectif récurrent actif (hors celui en édition)
   const takenTagIds = useMemo(
@@ -355,6 +424,10 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
     <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
       {/* ── Liste ── */}
       <div className="space-y-6 mb-8 lg:mb-0">
+        {rows.length > 0 && (
+          <ForecastControl ids={forecastIds} allOn={allForecastOn} upcomingTotal={upcomingTotal} />
+        )}
+
         {rows.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center">
             <Target size={22} className="mx-auto mb-3 text-muted-foreground" />

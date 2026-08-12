@@ -24,7 +24,7 @@ export default function AddExpenseSheet({ tags, onAdd }: Props) {
     <Sheet open={open} onOpenChange={handleOpen}>
       {/* FAB mobile uniquement */}
       <SheetTrigger
-        className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition-all cursor-pointer border-0"
+        className="lg:hidden fixed right-5 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/25 flex items-center justify-center hover:opacity-90 active:scale-95 transition-all cursor-pointer border-0"
         aria-label="Ajouter une dépense"
       >
         <Plus size={24} strokeWidth={2} />

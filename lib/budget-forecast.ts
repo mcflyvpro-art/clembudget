@@ -67,6 +67,16 @@ export function setForecast(budgetId: string, on: boolean) {
   emit()
 }
 
+/** Applique la même préférence à plusieurs objectifs d'un coup (contrôle global). */
+export function setForecastMany(budgetIds: string[], on: boolean) {
+  if (budgetIds.length === 0) return
+  const next = { ...state }
+  for (const id of budgetIds) next[id] = on
+  state = next
+  persist()
+  emit()
+}
+
 /**
  * `isOn(id)` → la préférence de cet objectif (true par défaut).
  * `toggle(id)` → bascule et mémorise.

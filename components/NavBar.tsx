@@ -42,45 +42,63 @@ export default function NavBar() {
 
   return (
     <>
-      {/* ── Mobile : barre du haut ────────────────────────── */}
-      <header className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b-2 border-border lg:hidden">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="shrink-0 flex items-center">
+      {/* ── Mobile : header slim (logo + quitter) ─────────── */}
+      <header
+        className="sticky top-0 z-30 bg-background/85 backdrop-blur-md border-b border-border lg:hidden"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="px-4 h-14 flex items-center justify-between">
+          <Link href="/" onClick={handleLogoClick} className="shrink-0 flex items-center">
             <Image
               src="/logo.svg"
               alt="Budget Perso"
               width={978}
               height={400}
-              className="h-10 w-auto object-contain"
+              className="h-9 w-auto object-contain"
               priority
             />
           </Link>
 
-          <nav className="flex items-center gap-0.5">
-            {NAV.map(({ href, icon: Icon, label }) => (
+          <button
+            onClick={handleSignOut}
+            aria-label="Quitter"
+            className="flex items-center justify-center -mr-1.5 w-9 h-9 rounded-full text-muted-foreground hover:text-foreground active:bg-muted transition-colors cursor-pointer"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
+
+      {/* ── Mobile : tab bar en bas (façon iOS) ───────────── */}
+      <nav
+        className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-background/90 backdrop-blur-md border-t border-border"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="grid grid-cols-6">
+          {NAV.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href
+            return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                  pathname === href
-                    ? 'text-primary font-medium bg-primary/8'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                aria-current={active ? 'page' : undefined}
+                className={`flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 text-[10px] font-medium transition-colors ${
+                  active ? 'text-primary' : 'text-muted-foreground active:text-foreground'
                 }`}
               >
-                <Icon size={16} />
-                <span className="hidden">{label}</span>
+                <span
+                  className={`flex items-center justify-center w-9 h-7 rounded-full transition-colors ${
+                    active ? 'bg-primary/10' : ''
+                  }`}
+                >
+                  <Icon size={19} strokeWidth={active ? 2.4 : 2} />
+                </span>
+                <span className="leading-none">{label}</span>
               </Link>
-            ))}
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer ml-1"
-            >
-              <LogOut size={16} />
-              <span className="hidden">Quitter</span>
-            </button>
-          </nav>
+            )
+          })}
         </div>
-      </header>
+      </nav>
 
       {/* ── Desktop : sidebar fixe ────────────────────────── */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-background border-r-2 border-border z-20">
