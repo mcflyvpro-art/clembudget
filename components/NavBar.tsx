@@ -45,7 +45,7 @@ export default function NavBar() {
       {/* ── Mobile : header slim (logo + quitter) ─────────── */}
       <header
         className="sticky top-0 z-30 bg-background/85 backdrop-blur-md border-b border-border lg:hidden"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ paddingTop: 'var(--sat)' }}
       >
         <div className="px-4 h-14 flex items-center justify-between">
           <Link href="/" onClick={handleLogoClick} className="shrink-0 flex items-center">
@@ -71,8 +71,8 @@ export default function NavBar() {
 
       {/* ── Mobile : tab bar en bas (façon iOS) ───────────── */}
       <nav
-        className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-background/90 backdrop-blur-md border-t border-border"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className="app-tabbar lg:hidden fixed inset-x-0 bottom-0 z-30 bg-background/90 backdrop-blur-md border-t border-border"
+        style={{ paddingBottom: 'var(--sab)' }}
       >
         <div className="grid grid-cols-6">
           {NAV.map(({ href, icon: Icon, label }) => {

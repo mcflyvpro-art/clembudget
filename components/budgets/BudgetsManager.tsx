@@ -415,7 +415,10 @@ export default function BudgetsManager({ budgets, progresses, tags }: Props) {
     setEditingId(b.id)
     setError(null)
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+      // Sur mobile c'est <main id="app-scroll"> qui défile, pas le document
+      const scroller = document.getElementById('app-scroll')
+      if (scroller) scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' })
+      else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
     }
   }
 

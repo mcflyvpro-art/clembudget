@@ -35,5 +35,16 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|webp)$).*)'],
+  /*
+   * Tout passe par l'auth SAUF les fichiers qui doivent rester publics.
+   *
+   * ⚠️ Point critique PWA : Safari télécharge /manifest.webmanifest et
+   * /sw.js SANS cookies. S'ils passent par ce proxy, ils sont redirigés
+   * vers /login → Safari reçoit du HTML au lieu du manifeste, l'ignore,
+   * et « Ajouter à l'écran d'accueil » crée un simple marque-page Safari
+   * au lieu d'une vraie app plein écran. C'était le bug.
+   */
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|apple-touch-icon.png|splash/|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico|webmanifest)$).*)',
+  ],
 }

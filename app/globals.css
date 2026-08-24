@@ -190,3 +190,172 @@
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-6px); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODE APP NATIVE (PWA iOS / Android)
+
+   Objectif : que l'app installée sur l'écran d'accueil ne se comporte plus
+   comme une page web — pas de zoom, pas de rebond élastique, pas de menu
+   long-press, pas de surlignage bleu au tap, une seule zone qui défile.
+   ══════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* Encoches / barre d'accueil iPhone (nécessite viewport-fit=cover) */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+
+  html {
+    height: 100%;
+    background-color: var(--background);
+
+    /* iOS ne doit pas regrossir le texte en paysage */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+
+    /* pan-x/pan-y : on garde le défilement, on retire le zoom et le
+       double-tap. (Le pincement est bloqué en JS dans native-app.tsx,
+       Safari ignorant user-scalable=no.) */
+    touch-action: pan-x pan-y;
+
+    /* Pas de pull-to-refresh ni de rebond en bout de page */
+    overscroll-behavior: none;
+  }
+
+  body {
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
+
+    /* Pas de flash bleu au tap, pas de loupe / menu au long-press */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+
+    /* Le texte d'interface ne se sélectionne pas, comme dans une app */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* …sauf là où c'est utile : saisie, copier/coller */
+  input,
+  textarea,
+  [contenteditable='true'],
+  .select-text {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  /* Pas de fantôme d'image au drag */
+  img,
+  svg,
+  a {
+    -webkit-user-drag: none;
+  }
+
+  /* Réactivité immédiate au tap sur tout ce qui est cliquable */
+  a,
+  button,
+  [role='button'],
+  label,
+  summary {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS zoome automatiquement quand on focus un champ dont la police fait
+     moins de 16px. On force 16px sur mobile — sauf sur les champs
+     volontairement plus grands (montant en text-2xl) et sur les champs
+     marqués `keep-font-size`. */
+  @media (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not(
+        .text-lg
+      ):not(.text-xl):not(.text-2xl):not(.text-3xl):not(.text-4xl):not(.keep-font-size),
+    select:not(.text-lg):not(.text-xl):not(.text-2xl):not(.keep-font-size),
+    textarea:not(.text-lg):not(.text-xl):not(.text-2xl):not(.keep-font-size) {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@layer components {
+  /* ── Coquille d'app : une hauteur figée, une seule zone scrollable ──
+     Sur mobile, le document lui-même ne défile plus (donc plus de rebond
+     ni de barre Safari qui apparaît/disparaît). Sur desktop (≥ lg), on
+     garde le défilement normal de la page. */
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .app-scroll {
+    /* zone de contenu — devient le conteneur de défilement sur mobile */
+    scroll-behavior: smooth;
+  }
+
+  @media (max-width: 1023px) {
+    .app-shell {
+      height: 100dvh;
+      height: var(--vv-height, 100dvh);
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+
+    .app-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+  }
+
+  /* ── Clavier iOS ouvert : la tab bar et le bouton + s'escamotent,
+     comme dans une app native ─────────────────────────────────────── */
+  .app-tabbar,
+  .app-fab {
+    transition: transform 0.22s ease, opacity 0.22s ease;
+  }
+
+  .is-keyboard-open .app-tabbar {
+    transform: translateY(120%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .is-keyboard-open .app-fab {
+    transform: scale(0.6);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── Réglages réservés à l'app installée ──────────────────────────── */
+.is-standalone {
+  /* pas de sélection accidentelle en glissant */
+  cursor: default;
+}
+
+/* Le curseur « main » n'a aucun sens au doigt */
+@media (pointer: coarse) {
+  a,
+  button,
+  [role='button'],
+  .cursor-pointer {
+    cursor: default;
+  }
+}
+
+/* Respect des préférences d'accessibilité iOS */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

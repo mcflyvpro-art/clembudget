@@ -239,7 +239,8 @@ function InputField({
           : '1.5px solid rgba(246,169,188,0.5)',
         boxShadow: focused ? '0 0 0 3px rgba(233,104,138,0.12)' : 'none',
         outline: 'none',
-        fontSize: '14px',
+        // 16px minimum : en dessous, iOS zoome automatiquement au focus
+        fontSize: '16px',
         color: '#2D1520',
         transition: 'border 0.15s ease, box-shadow 0.15s ease',
         boxSizing: 'border-box',
