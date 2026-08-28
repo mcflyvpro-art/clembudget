@@ -1,0 +1,46 @@
+name: Supabase Keep-Alive
+
+# Le tier gratuit Supabase met un projet en pause après 7 jours sans
+# requête API. Ce workflow envoie une petite requête à intervalle
+# régulier pour que le projet ne s'endorme jamais.
+#
+# Secrets requis (Settings → Secrets and variables → Actions) :
+#   NEXT_PUBLIC_SUPABASE_URL       — même valeur que dans .env.local
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY  — même valeur que dans .env.local
+
+on:
+  schedule:
+    # Toutes les 3 jours à 6h UTC — large marge sous la limite de 7 jours
+    # au cas où une exécution planifiée serait retardée ou manquée.
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pinger l'API Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Secrets NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY manquants — voir Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          status=$(curl -s -o /tmp/response.json -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/tags?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "Code HTTP : $status"
+          cat /tmp/response.json
+          echo
+
+          if [ "$status" -ge 400 ]; then
+            echo "::error::Supabase a répondu avec le code $status"
+            exit 1
+          fi
+
+          echo "Supabase est réveillé ✅"
