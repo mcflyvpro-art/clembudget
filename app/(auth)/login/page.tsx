@@ -32,7 +32,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/init')
+    router.push('/')
   }
 
   return (

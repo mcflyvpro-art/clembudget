@@ -15,12 +15,9 @@ export const createClient = cache(async () => {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              // Supprimer maxAge/expires → cookie de session uniquement
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { maxAge, expires, ...sessionOpts } = (options ?? {}) as Record<string, unknown>
-              cookieStore.set(name, value, sessionOpts as Parameters<typeof cookieStore.set>[2])
-            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
           } catch {}
         },
       },
